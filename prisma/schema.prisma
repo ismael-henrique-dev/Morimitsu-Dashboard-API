@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  instructor
+}
+
+enum AnnouncementType {
+  graduation
+  birthday
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      Role
+
+  // Relacionamentos
+  classes   Class[]  @relation("InstructorClasses")
+  attendances Attendance[] @relation("InstructorAttendances")
+}
+
+model Student {
+  id               Int      @id @default(autoincrement())
+  alias            String   @unique
+  full_name        String
+  date_of_birth    DateTime
+  belt             String?
+  stripe           Int?
+  current_frequency Int      @default(0)
+  total_frequencies Int      @default(0)
+  email            String?  @unique
+  phone            String?
+  parent_phone     String?
+  address          String?
+  cpf              String?  @unique
+  ifce_enrollment  String?  @unique
+  parent_name      String?
+
+  // Relacionamentos
+  announcements    Announcement[]
+  graduations      Graduation[]
+  attendances      Attendance[]
+}
+
+model Announcement {
+  id         Int               @id @default(autoincrement())
+  student_id Int
+  title      String
+  message    String
+  type       AnnouncementType
+  date       DateTime          @default(now())
+
+  // Relacionamento
+  student    Student           @relation(fields: [student_id], references: [id])
+}
+
+model Graduation {
+  id              Int      @id @default(autoincrement())
+  student_id      Int
+  graduation_date DateTime
+  belt            String
+  stripe          Int?
+
+  // Relacionamento
+  student         Student @relation(fields: [student_id], references: [id])
+}
+
+model Class {
+  id          Int     @id @default(autoincrement())
+  instructor_id Int
+  age_range   String?
+  name        String
+  schedule    String?
+
+  // Relacionamentos
+  instructor  User     @relation("InstructorClasses", fields: [instructor_id], references: [id])
+  attendances Attendance[]
+}
+
+model Attendance {
+  id              Int      @id @default(autoincrement())
+  student_id      Int
+  class_id        Int
+  instructor_id   Int
+  attendance_hour String
+  attendance_date DateTime
+  present         Boolean   @default(true)
+
+  // Relacionamentos
+  student    Student @relation(fields: [student_id], references: [id])
+  class      Class   @relation(fields: [class_id], references: [id])
+  instructor User    @relation("InstructorAttendances", fields: [instructor_id], references: [id])
+}

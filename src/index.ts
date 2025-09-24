@@ -1,18 +1,22 @@
 import express from 'express'
-import dotenv from 'dotenv'
 import cors from 'cors'
-
-dotenv.config()
+import { ENV } from './lib/env'
 
 const app = express()
 
 app.use(express.json())
 app.use(cors())
 
-const port = process.env.PORT
+const port = ENV.PORT
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
+app.get('/hello', (req, res) => {
+  res.send('Helloasas World!')
+})
+
+app.post('/student/create', (req, res) => {
+  const { name, email, cpf } = req.body
+
+  res.send('Helloasas World!')
 })
 
 app.listen(port, () => {
