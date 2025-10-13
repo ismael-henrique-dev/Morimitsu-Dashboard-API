@@ -43,7 +43,7 @@ model users {
 
 model students {
   id                String   @id @default(uuid())
-  alias             String
+  alias             String?
   belt              Belt
   grade             Int
   current_frequency Int      @default(0)

@@ -6,5 +6,6 @@ export const ENV = z
     PORT: z.string(),
     HOST: z.string(),
     DATABASE_URL: z.string(),
+    JWT_SECRET: z.string()
   })
   .parse(process.env)
