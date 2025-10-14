@@ -98,7 +98,8 @@ model graduations {
 model classes {
   id          String   @id @default(uuid())
   name        String
-  age_range   String
+  min_age        Int    @default(4) // idade mínima opcional
+  max_age        Int?     // idade máxima opcional
   schedule    String
   instructor_id String
 

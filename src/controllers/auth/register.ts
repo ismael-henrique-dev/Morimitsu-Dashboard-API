@@ -28,7 +28,7 @@ export const register = async (req: Request, res: Response) => {
 
     const hash = await bcrypt.hash(password, SALT_ROUNDS)
     const user = await prisma.users.create({
-      data: { username, email, password: hash, role: 'admin' },
+      data: { username, email, password: hash, role: 'instructor' },
     })
 
     const token = signToken({ userId: user.id, role: user.role })

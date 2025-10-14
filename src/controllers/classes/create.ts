@@ -1,34 +1,62 @@
 import { Response } from 'express'
 import { AuthRequest } from '../../middlewares/auth'
-import { prisma } from '../../lib'
+import { CreateClassService } from '../../services/classes/create'
+import { PrismaClassesRepository } from '../../repositories/classes'
+import z from 'zod'
 
-export const createClass = async (req: AuthRequest, res: Response) => {
+const createClassSchema = z
+  .object({
+    name: z.string(),
+    schedule: z.string(),
+    minAge: z.number().min(4, 'A idade mínima deve ser pelo menos 4 anos.'),
+    maxAge: z.number().nullable().optional(),
+  })
+  .refine(
+    (data) => data.maxAge == null || data.maxAge > data.minAge,
+    {
+      message: 'A idade máxima deve ser maior que a idade mínima.',
+      path: ['maxAge'],
+    }
+  )
+
+export const createClassController = async (
+  req: AuthRequest,
+  res: Response
+) => {
   try {
-    if (!req.user || !['instructor', 'admin'].includes(req.user.role)) {
-      return res.status(403).json({ message: 'Acesso negado' })
+    const body = createClassSchema.parse(req.body)
+
+    const { name, minAge, maxAge, schedule } = body
+    const instructor_id = req.user?.userId
+
+    if (!instructor_id) {
+      throw new Error('Token necessário')
     }
 
-    const { name, ageRange, schedule } = req.body
+    const service = new CreateClassService(new PrismaClassesRepository())
 
-    if (!name || !ageRange || !schedule) {
-      return res.status(400).json({ message: 'Campos obrigatórios faltando' })
-    }
-
-    const newClass = await prisma.classes.create({
-      data: {
-        name: name,
-        age_range: ageRange,
-        schedule: schedule,
-        instructor_id: req.user.userId,
-      },
+    const _response = await service.handle({
+      instructor_id,
+      name,
+      schedule,
+      min_age: minAge,
+      max_age: maxAge ?? null,
     })
 
-    res.status(201).json({
+    return res.status(201).json({
       message: 'Turma criada com sucesso!',
-      data: newClass,
+      result: _response,
     })
   } catch (err) {
+    if (err instanceof z.ZodError) {
+      const firstMessage = err.message || 'Erro de validação'
+
+      return res.status(400).json({
+        message: firstMessage,
+      })
+    }
+
     console.error(err)
-    res.status(500).json({ message: 'Erro interno ao criar turma' })
+    return res.status(500).json({ message: 'Erro interno ao criar turma' })
   }
 }
