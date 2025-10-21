@@ -1,9 +1,7 @@
 import z from 'zod'
 import bcrypt from 'bcrypt'
-
 import { Request, Response } from 'express'
 import { prisma } from '../../lib'
-import { signToken } from '../../lib/jwt'
 
 const SALT_ROUNDS = 10
 
@@ -31,22 +29,29 @@ export const register = async (req: Request, res: Response) => {
       data: { username, email, password: hash, role: 'instructor' },
     })
 
-    const token = signToken({ userId: user.id, role: user.role })
-
     res.status(201).json({
+      message: 'Created user with success!',
       user: {
         id: user.id,
         email: user.email,
         username: user.username,
         role: user.role,
       },
-      token,
     })
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ errors: err.message })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const errors = error.issues.map((issue) => ({
+        field: issue.path[0],
+        message: issue.message,
+      }))
+
+      return res.status(400).json({
+        message: 'Validation error',
+        errors,
+      })
     }
-    console.error(err)
+
+    console.error(error)
     res.status(500).json({ message: 'Internal server error' })
   }
 }
