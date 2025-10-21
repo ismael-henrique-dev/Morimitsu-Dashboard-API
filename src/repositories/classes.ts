@@ -3,6 +3,7 @@ import { prisma } from '../lib'
 
 export interface ClassesRepositoryInterface {
   create(data: Prisma.classesUncheckedCreateInput): Promise<classes>
+  delete(classId: string): Promise<void>
 }
 
 //No prisma
@@ -10,6 +11,12 @@ export class PrismaClassesRepository implements ClassesRepositoryInterface {
   async create(data: Prisma.classesUncheckedCreateInput): Promise<classes> {
     return await prisma.classes.create({
       data,
+    })
+  }
+
+  async delete(classId: string): Promise<void> {
+    await prisma.classes.delete({
+      where: { id: classId },
     })
   }
 }
@@ -29,5 +36,9 @@ export class InMemoryClassesRepository implements ClassesRepositoryInterface {
     }
     this.list.push(c)
     return c
+  }
+
+  async delete(classId: string): Promise<void> {
+    this.list = this.list.filter((c) => c.id !== classId)
   }
 }
