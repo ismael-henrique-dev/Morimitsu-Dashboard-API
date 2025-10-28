@@ -4,8 +4,7 @@ import { ClassesRepositoryInterface } from '../../repositories/classes'
 export class DeleteClassService {
     constructor(private classRepository: ClassesRepositoryInterface) { }
 
-    async handle({ classId }: { classId: string }): Promise<{ id: string }> {
+    async handle({ classId }: { classId: string }): Promise<void> {
         await this.classRepository.delete(classId)
-        return { id: classId }
     }
 }
