@@ -14,12 +14,8 @@ export const deleteClassController = async( req: AuthRequest, res: Response ) =>
             throw new Error('ID da turma é necessário')
         }
         const service = new DeleteClassService(new PrismaClassesRepository())
-        const _response = await service.handle({
-            classId,
-        })
         return res.status(201).json({
             message: 'Turma deletada com sucesso!',
-            result: _response,
         })
     } catch (err) {
         if (err instanceof z.ZodError) {
