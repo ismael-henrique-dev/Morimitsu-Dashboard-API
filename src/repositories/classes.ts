@@ -3,9 +3,10 @@ import { prisma } from '../lib'
 
 export interface ClassesRepositoryInterface {
   create(data: Prisma.classesUncheckedCreateInput): Promise<classes>
-  delete(classId: string): Promise<void>
+  delete(classId: string): Promise<void> 
+  update(classId: string, data: Partial<Prisma.classesUncheckedUpdateInput>): Promise<classes>
+  get(search: string | null): Promise<classes[]>
 }
-
 //No prisma
 export class PrismaClassesRepository implements ClassesRepositoryInterface {
   async create(data: Prisma.classesUncheckedCreateInput): Promise<classes> {
@@ -19,7 +20,25 @@ export class PrismaClassesRepository implements ClassesRepositoryInterface {
       where: { id: classId },
     })
   }
+  async update(classId: string, data: Partial<Prisma.classesUncheckedUpdateInput>): Promise<classes> {
+    return await prisma.classes.update({
+      where: { id: classId },
+      data,
+    })
+  }
+
+  async get(search: string | null): Promise<classes[]>{
+    return prisma.classes.findMany({
+      where: search
+        ? { name: { 
+          contains: search,
+          mode: 'insensitive'
+        } }
+        : {}
+    })
+  }  
 }
+
 
 //Em memória
 export class InMemoryClassesRepository implements ClassesRepositoryInterface {
@@ -40,5 +59,23 @@ export class InMemoryClassesRepository implements ClassesRepositoryInterface {
 
   async delete(classId: string): Promise<void> {
     this.list = this.list.filter((c) => c.id !== classId)
+  }
+
+  async update(classId: string, data: Partial<Prisma.classesUncheckedUpdateInput>): Promise<classes> {
+    const idx = this.list.findIndex((c) => c.id === classId)
+    if (idx === -1) throw new Error('Turma não encontrada')
+
+    const updatedClass = { ...this.list[idx], ...data } as classes
+    this.list[idx] = updatedClass
+    return updatedClass
+  }
+
+  async get(search: string | null): Promise<classes[]> {
+    if (search) {
+      return this.list.filter((c) => 
+        c.name.toLowerCase().includes(search.toLowerCase())
+      )
+    }
+    return this.list
   }
 }
