@@ -3,12 +3,10 @@ import { prisma } from '../lib'
 
 export interface ClassesRepositoryInterface {
   create(data: Prisma.classesUncheckedCreateInput): Promise<classes>
-  delete(classId: string): Promise<void>
+  delete(classId: string): Promise<void> 
   update(classId: string, data: Partial<Prisma.classesUncheckedUpdateInput>): Promise<classes>
-  search(classId: string) : Promise<classes | null>
-  read (): Promise<classes[]>
+  get(search: string | null): Promise<classes[]>
 }
-
 //No prisma
 export class PrismaClassesRepository implements ClassesRepositoryInterface {
   async create(data: Prisma.classesUncheckedCreateInput): Promise<classes> {
@@ -28,14 +26,17 @@ export class PrismaClassesRepository implements ClassesRepositoryInterface {
       data,
     })
   }
-  async search(classId: string): Promise<classes | null> {
-    return await prisma.classes.findUnique({
-      where: { id: classId },
+
+  async get(search: string | null): Promise<classes[]>{
+    return prisma.classes.findMany({
+      where: search
+        ? { name: { 
+          contains: search,
+          mode: 'insensitive'
+        } }
+        : {}
     })
-  }
-  async read(): Promise<classes[]> {
-    return await prisma.classes.findMany()
-  }
+  }  
 }
 
 
@@ -69,11 +70,12 @@ export class InMemoryClassesRepository implements ClassesRepositoryInterface {
     return updatedClass
   }
 
-  async search(classId: string): Promise<classes | null> {
-    const c = this.list.find((c) => c.id === classId)
-    return c || null
-  }
-  async read(): Promise<classes[]> {
+  async get(search: string | null): Promise<classes[]> {
+    if (search) {
+      return this.list.filter((c) => 
+        c.name.toLowerCase().includes(search.toLowerCase())
+      )
+    }
     return this.list
   }
 }
