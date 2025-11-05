@@ -19,10 +19,7 @@ const createClassSchema = z
     }
   )
 
-export const createClassController = async (
-  req: AuthRequest,
-  res: Response
-) => {
+export const createClassController = async (req: AuthRequest,res: Response) => {
   try {
     const body = createClassSchema.parse(req.body)
 

@@ -12,8 +12,16 @@ export class GetClassesService {
 
   
   async findMany(): Promise<classes[]> {
+<<<<<<< HEAD
   const classList = await this.repo.get(null)
   return classList
 }
 
 }
+=======
+    const classList = await this.repo.get(null)
+    return classList
+  }
+
+}
+>>>>>>> develop

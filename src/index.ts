@@ -13,6 +13,7 @@ app.use(cors())
 
 app.use('/auth', routes.auth)
 app.use('/classes', routes.class)
+app.use('/students', routes.student)
 
 const port = ENV.PORT
 

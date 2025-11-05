@@ -35,4 +35,8 @@ export const getClassesController = async (req: AuthRequest, res: Response) => {
     console.error(error)
     return res.status(500).json({ message: 'Erro interno do servidor' })
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> develop
