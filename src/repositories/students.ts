@@ -19,6 +19,7 @@ export interface StudentsRepositoryInterface {
   
   delete(studentId: string): Promise<void>
   get(search: string | null): Promise<(students & { personal_info: any | null })[]>
+  update(studentId: string, data: Partial<Prisma.studentsUncheckedUpdateInput>): Promise<students & { personal_info: any | null }>
 }
 
 export class PrismaStudentsRepository implements StudentsRepositoryInterface {
@@ -84,4 +85,26 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
       include: { personal_info: true },
     })
   }
+  async update(studentId: string, data: Partial<Prisma.studentsUncheckedUpdateInput>): Promise<students & { personal_info: any | null }> {
+  const { personal_info, ...studentData } = data
+
+  const updatedStudent = await prisma.students.update({
+    where: { id: studentId },
+    data: studentData,
+    include: { personal_info: true },
+  })
+
+  if (personal_info) {
+    await prisma.personal_info.updateMany({
+      where: { student_id: studentId },
+      data: personal_info as any,
+    })
+  }
+
+  return prisma.students.findUnique({
+    where: { id: studentId },
+    include: { personal_info: true },
+  }) as Promise<students & { personal_info: any | null }>
+}
+
 }
