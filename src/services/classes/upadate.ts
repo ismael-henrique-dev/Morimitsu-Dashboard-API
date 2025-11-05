@@ -8,4 +8,3 @@ export class UpdateClassService {
         return await this.classesRepository.update(classId, data)
     }
 }
-
