@@ -19,7 +19,7 @@ export interface StudentsRepositoryInterface {
   
   delete(studentId: string): Promise<void>
   get(search: string | null): Promise<(students & { personal_info: any | null })[]>
-  update(studentId: string, data: Partial<Prisma.studentsUncheckedUpdateInput>): Promise<students & { personal_info: any | null }>
+  update(studentId: string, data: any): Promise<students & { personal_info: any | null }>
 }
 
 export class PrismaStudentsRepository implements StudentsRepositoryInterface {
