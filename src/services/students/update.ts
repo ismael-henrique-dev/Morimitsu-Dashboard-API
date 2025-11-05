@@ -4,7 +4,7 @@
 // export class UpdateStudentService {
 //     constructor(private studentsRepository: StudentsRepositoryInterface) {}
 
-//     async update(student: string, data: Partial<Prisma.classesUncheckedUpdateInput>): Promise<classes> {
-//             return await this.classesRepository.update(classId, data) //
+//     async update(studentId: string, data: Partial<Prisma.personal_infoUncheckedUpdateInput>): Promise<students> {
+//             return await this.studentsRepository.update(studentId, data)
 //         }
 // }
