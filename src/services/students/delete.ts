@@ -7,4 +7,3 @@ export class DeleteStudentService {
     await this.studentRepository.delete(studentId);
   }
 }
-
