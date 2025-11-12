@@ -34,7 +34,14 @@ export class PrismaClassesRepository implements ClassesRepositoryInterface {
           contains: search,
           mode: 'insensitive'
         } }
-        : {}
+        : {},
+        include: {
+          instructor: {
+            select: {
+                username: true,
+            }
+          }
+        }
     })
   }  
 }

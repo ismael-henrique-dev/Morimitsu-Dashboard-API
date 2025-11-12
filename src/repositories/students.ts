@@ -85,26 +85,27 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
       include: { personal_info: true },
     })
   }
-  async update(studentId: string, data: Partial<Prisma.studentsUncheckedUpdateInput>): Promise<students & { personal_info: any | null }> {
-  const { personal_info, ...studentData } = data
-
-  const updatedStudent = await prisma.students.update({
+  async update(studentId: string, data: Partial<Prisma.studentsUpdateInput>) {
+  const student = await prisma.students.findUnique({
     where: { id: studentId },
-    data: studentData,
     include: { personal_info: true },
   })
 
-  if (personal_info) {
-    await prisma.personal_info.updateMany({
-      where: { student_id: studentId },
-      data: personal_info as any,
-    })
-  }
+  if (!student) throw new Error('Aluno não encontrado')
+  if (!student.personal_info && data.personal_info)
+    throw new Error('Aluno não possui informações pessoais cadastradas')
 
-  return prisma.students.findUnique({
+  return await prisma.students.update({
     where: { id: studentId },
+    data: {
+      grade: data.grade,
+      belt: data.belt,
+      email: data.email,
+      personal_info: data.personal_info ?? undefined,
+    },
     include: { personal_info: true },
-  }) as Promise<students & { personal_info: any | null }>
+  })
 }
+
 
 }
