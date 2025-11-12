@@ -5,36 +5,39 @@ import { PrismaStudentsRepository } from '../../repositories/students'
 import { z } from 'zod'
 import { Belt } from '@prisma/client'
 
-const updateStudentSchema = z.object({
+  const updateStudentSchema = z.object({
   id: z.string().uuid({ message: 'ID inválido' }),
-
-  // Campos principais do aluno
   grade: z.number().int('A série deve ser um número inteiro').optional(),
   belt: z.nativeEnum(Belt).optional(),
-
-  // Campos relacionados a informações pessoais
-  personal_info: z
-    .object({
-      full_name: z.string().min(2, 'Nome inválido').optional(),
-      parent_name: z.string().min(2, 'Nome do responsável inválido').optional(),
-      parent_phone: z.string().min(8, 'Telefone do responsável inválido').optional(),
-      student_phone: z.string().min(8, 'Telefone do aluno inválido').optional(),
-      address: z.string().min(5, 'Endereço inválido').optional(),
-    })
-    .optional(),
+  personal_info: z.object({
+    full_name: z.string().min(2, 'Nome inválido').optional(),
+    parent_name: z.string().min(2, 'Nome do responsável inválido').optional(),
+    parent_phone: z.string().min(8, 'Telefone do responsável inválido').optional(),
+    student_phone: z.string().min(8, 'Telefone do aluno inválido').optional(),
+    address: z.string().min(5, 'Endereço inválido').optional(),
+    email: z.string().email('Email inválido').optional(),
+  }).optional(),
 })
 
 export const updateStudentsController = async (req: AuthRequest, res: Response) => {
   try {
+    console.log('📥 Body recebido:', req.body)
+    console.log('🆔 Params:', req.params)
+    
     const parsedData = updateStudentSchema.parse({
         id: req.params.id,
-        personal_info: req.body,
+        ...req.body,
 })
 
     const service = new UpdateStudentService(new PrismaStudentsRepository())
 
     const updatedStudent = await service.update(parsedData.id, {
-        personal_info: parsedData.personal_info,
+      grade: parsedData.grade,
+      belt: parsedData.belt,
+      personal_info: parsedData.personal_info
+        ? { update: parsedData.personal_info }
+        : undefined,
+      
 })
 
     return res.status(200).json({
