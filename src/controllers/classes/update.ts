@@ -9,7 +9,11 @@ const updateClassSchema = z.object({
   name: z.string().min(2, { message: 'Nome muito curto' }).max(100, { message: 'Nome muito longo' }).optional(),
   min_age: z.coerce.number().min(4, 'A idade deve ser no minimo 4 anos.').optional(),
   max_age: z.coerce.number().min(0).optional(),
-  schedule: z.string().optional(),
+  schedule: z.array(
+        z.object({
+          dayOfWeek: z.string(),
+          time: z.string()
+      })),
   instructor_id: z.string().uuid({ message: 'ID do instrutor inválido' }).optional(),
 }).refine(
   (data) =>

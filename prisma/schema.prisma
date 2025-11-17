@@ -100,7 +100,7 @@ model classes {
   name        String
   min_age        Int    @default(4) // idade mínima opcional
   max_age        Int?     // idade máxima opcional
-  schedule    String
+  schedule    Json
   instructor_id String
 
   instructor  users      @relation("UserClasses", fields: [instructor_id], references: [id])

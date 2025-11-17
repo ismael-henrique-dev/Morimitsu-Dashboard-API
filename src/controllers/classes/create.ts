@@ -7,9 +7,13 @@ import z from 'zod'
 const createClassSchema = z
   .object({
     name: z.string(),
-    schedule: z.string(),
     minAge: z.number().min(4, 'A idade mínima deve ser pelo menos 4 anos.'),
     maxAge: z.number().nullable().optional(),
+    schedule: z.array(
+      z.object({
+        dayOfWeek: z.string(),
+        time: z.string()
+    })),
   })
   .refine(
     (data) => data.maxAge == null || data.maxAge > data.minAge,
