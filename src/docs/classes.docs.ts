@@ -60,11 +60,6 @@
 /**
  * /**
  * @openapi
-<<<<<<< HEAD
- * /classes/delete/{id}:
- *   delete:
- *     summary: Deletar uma turma pelo ID
-=======
  * /classes/create:
  *   post:
  *     summary: Criar turma
@@ -137,7 +132,6 @@
  * /classes/delete/id:
  *   delete:
  *     summary: Excluir uma turma turma
->>>>>>> develop
  *     tags:
  *       - Classes
  *     parameters:
