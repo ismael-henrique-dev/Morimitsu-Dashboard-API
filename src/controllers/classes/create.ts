@@ -38,10 +38,10 @@ export const createClassController = async (req: AuthRequest,res: Response) => {
 
     const _response = await service.handle({
       instructor_id,
-      name,
-      schedule,
-      min_age: minAge,
-      max_age: maxAge ?? null,
+       name,
+       schedule: schedule as any, // Importe o Prisma para acessar JsonValue
+       min_age: minAge,
+       max_age: maxAge ?? null,
     })
 
     return res.status(201).json({
