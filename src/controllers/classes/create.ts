@@ -12,8 +12,9 @@ const createClassSchema = z
     schedule: z.array(
       z.object({
         dayOfWeek: z.string(),
-        time: z.string()
-    })),
+        time: z.string(),
+      })
+    ),
   })
   .refine(
     (data) => data.maxAge == null || data.maxAge > data.minAge,
