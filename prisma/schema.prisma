@@ -28,8 +28,6 @@ enum Belt {
   brown
   black
   red
-  coral  // vermelho e preto (7º e 8º graus)
-  red_black // vermelho e branco
 }
 model users {
   id        String   @id @default(uuid())
