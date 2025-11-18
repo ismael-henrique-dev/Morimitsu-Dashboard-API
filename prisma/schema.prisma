@@ -7,96 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model users {
-  id       String           @id @default(uuid())
-  username String
-  email    String           @unique
-  password String
-  role     Role
-  sessions class_sessions[] @relation("UserSessions")
-  classes  classes[]        @relation("UserClasses")
-}
-
-model students {
-  id                String               @id @default(uuid())
-  alias             String?
-  belt              Belt
-  grade             Int
-  current_frequency Int                  @default(0)
-  total_frequency   Int                  @default(0)
-  email             String               @unique
-  class_id          String?
-  ifce_enrollment   Int?
-  announcements     announcements[]
-  graduations       graduations[]
-  personal_info     personal_info?
-  attendances       student_attendance[]
-  class             classes?             @relation(fields: [class_id], references: [id])
-}
-
-model personal_info {
-  id            String   @id @default(uuid())
-  student_id    String   @unique
-  cpf           String   @unique
-  parent_name   String
-  parent_phone  String
-  student_phone String
-  address       String
-  full_name     String
-  date_of_birth DateTime
-  student       students @relation(fields: [student_id], references: [id])
-}
-
-model announcements {
-  id             String           @id @default(uuid())
-  student_id     String
-  message        String
-  type           AnnouncementType
-  reference_date DateTime
-  expires_at     DateTime
-  student        students         @relation(fields: [student_id], references: [id])
-}
-
-model graduations {
-  id              String   @id @default(uuid())
-  student_id      String
-  graduation_date DateTime
-  belt            Belt
-  grade           Int
-  student         students @relation(fields: [student_id], references: [id])
-}
-
-model classes {
-  id            String           @id @default(uuid())
-  name          String
-  instructor_id String
-  max_age       Int?
-  min_age       Int              @default(4)
-  schedule      Json
-  sessions      class_sessions[]
-  instructor    users            @relation("UserClasses", fields: [instructor_id], references: [id])
-  students      students[]
-}
-
-model class_sessions {
-  id            String               @id @default(uuid())
-  class_id      String
-  instructor_id String
-  session_date  DateTime
-  class         classes              @relation(fields: [class_id], references: [id])
-  instructor    users                @relation("UserSessions", fields: [instructor_id], references: [id])
-  attendances   student_attendance[]
-}
-
-model student_attendance {
-  id         String         @id @default(uuid())
-  present    Boolean        @default(false)
-  student_id String
-  session_id String
-  session    class_sessions @relation(fields: [session_id], references: [id])
-  student    students       @relation(fields: [student_id], references: [id])
-}
-
 enum Role {
   admin
   instructor
@@ -118,6 +28,103 @@ enum Belt {
   brown
   black
   red
-  coral
-  red_black
+  coral  // vermelho e preto (7º e 8º graus)
+  red_black // vermelho e branco
+}
+model users {
+  id        String   @id @default(uuid())
+  username  String   
+  email     String   @unique
+  password  String
+  role      Role
+  classes   classes[]       @relation("UserClasses")
+  sessions  class_sessions[] @relation("UserSessions")
+}
+
+model students {
+  id                String   @id @default(uuid())
+  alias             String?
+  belt              Belt
+  grade             Int
+  current_frequency Int      @default(0)
+  total_frequency   Int      @default(0)
+  email             String  @unique
+  class_id          String?
+  ifce_enrollment   Int?
+  
+  // Relationaments
+  class             classes?          @relation(fields: [class_id], references: [id])
+  personal_info     personal_info?
+  graduations       graduations[]
+  announcements     announcements[]
+  attendances       student_attendance[]
+}
+
+model personal_info {
+  id           String   @id @default(uuid())
+  student_id   String   @unique
+  cpf          String  @unique
+  parent_name  String
+  parent_phone String
+  student_phone String
+  address      String
+  full_name    String
+  date_of_birth DateTime
+
+  student      students @relation(fields: [student_id], references: [id])
+}
+
+model announcements {
+  id         String            @id @default(uuid())
+  student_id String
+  message    String
+  type       AnnouncementType
+  reference_date DateTime
+  expires_at  DateTime
+
+  student    students @relation(fields: [student_id], references: [id])
+}
+
+model graduations {
+  id              String   @id @default(uuid())
+  student_id      String
+  graduation_date DateTime
+  belt            Belt
+  grade           Int
+
+  student         students @relation(fields: [student_id], references: [id])
+}
+
+model classes {
+  id          String   @id @default(uuid())
+  name        String
+  min_age        Int    @default(4) // idade mínima opcional
+  max_age        Int?     // idade máxima opcional
+  schedule    Json
+  instructor_id String
+
+  instructor  users      @relation("UserClasses", fields: [instructor_id], references: [id])
+  sessions    class_sessions[]
+  students    students[]
+}
+
+model class_sessions {
+  id            String   @id @default(uuid())
+  class_id      String
+  instructor_id String
+  session_date  DateTime
+
+  class         classes   @relation(fields: [class_id], references: [id])
+  instructor    users     @relation("UserSessions", fields: [instructor_id], references: [id])
+  attendances   student_attendance[]
+}
+
+model student_attendance {
+  id          String   @id @default(uuid())
+  present     Boolean  @default(false)
+  student_id  String
+  session_id  String
+
+  student     students       @relation(fields: [student_id], references: [id])
+  session     class_sessions @relation(fields: [session_id], references: [id])
 }
