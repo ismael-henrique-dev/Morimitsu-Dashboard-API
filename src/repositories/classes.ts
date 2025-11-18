@@ -57,7 +57,7 @@ export class InMemoryClassesRepository implements ClassesRepositoryInterface {
       name: data.name,
       min_age: data.min_age || 4,
       max_age: data.max_age || null,
-      schedule: data.schedule,
+      schedule: data.schedule as any,
       instructor_id: data.instructor_id,
     }
     this.list.push(c)
