@@ -64,8 +64,8 @@ model personal_info {
   id           String   @id @default(uuid())
   student_id   String   @unique
   cpf          String  @unique
-  parent_name  String
-  parent_phone String
+  parent_name  String?
+  parent_phone String?
   student_phone String
   address      String
   full_name    String
