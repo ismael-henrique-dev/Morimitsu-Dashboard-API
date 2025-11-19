@@ -70,11 +70,9 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
     if (!student) throw new Error('Aluno não encontrado')
     if (!student.personal_info) throw new Error('Aluno não possui informações pessoais cadastradas')
 
-    // 1. SEPARAÇÃO DE DADOS
     const studentUpdateData: Partial<Prisma.studentsUpdateInput> = {}
-    const personalInfoUpdateData: Partial<Prisma.personal_infoUpdateInput> = {}
 
-    // Lista de campos que vão para PersonalInfo
+    const personalInfoUpdateData: Partial<Prisma.personal_infoUpdateInput> = {}
     const personalInfoFields: Array<keyof UpdateStudentData> = [
       'cpf', 'full_name', 'parent_name', 'parent_phone', 
       'student_phone', 'address', 'date_of_birth'
@@ -90,19 +88,21 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
         studentUpdateData[key as keyof Prisma.studentsUpdateInput] = value as any
       }
     }
-    
-    // 2. MONTA O PAYLOAD FINAL
     if (Object.keys(personalInfoUpdateData).length > 0) {
       studentUpdateData.personal_info = {
         update: personalInfoUpdateData
       }
     }
-
-    // 3. EXECUTA A ATUALIZAÇÃO PRINCIPAL
     return await prisma.students.update({
       where: { id: studentId },
       data: studentUpdateData,
       include: { personal_info: true },
     })
   }
+  // async details(id: string): Promise<StudentWithPersonalInfo | null> {
+  //   return prisma.students.findUnique({
+  //     where: { id },
+  //     include: { personal_info: true },
+  //   })
+  // }
 }
