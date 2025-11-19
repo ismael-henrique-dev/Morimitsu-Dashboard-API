@@ -50,7 +50,7 @@ model students {
   total_frequency   Int      @default(0)
   email             String  @unique
   class_id          String?
-  ifce_enrollment   Int?
+  ifce_enrollment   String
   
   // Relationaments
   class             classes?          @relation(fields: [class_id], references: [id])

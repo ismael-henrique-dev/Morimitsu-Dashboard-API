@@ -39,6 +39,15 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
     return student
   }
 
+async findByEmail(email: string): Promise<StudentWithPersonalInfo | null> {
+    const student = await prisma.students.findUnique({
+        where: { email },
+        include: { personal_info: true },
+    })
+
+    return student
+  }
+
   async delete(studentId: string): Promise<void> {
     await prisma.personal_info.deleteMany({ where: { student_id: studentId } })
     await prisma.graduations.deleteMany({ where: { student_id: studentId } })
@@ -99,10 +108,10 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
       include: { personal_info: true },
     })
   }
-  // async details(id: string): Promise<StudentWithPersonalInfo | null> {
-  //   return prisma.students.findUnique({
-  //     where: { id },
-  //     include: { personal_info: true },
-  //   })
-  // }
+  async details(id: string): Promise<StudentWithPersonalInfo | null> {
+    return prisma.students.findUnique({
+      where: { id },
+      include: { personal_info: true },
+    })
+  }
 }

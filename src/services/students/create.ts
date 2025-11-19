@@ -13,7 +13,7 @@ interface CreateStudentRequest {
   grade: number
   belt: Belt
   class_id?: string | null
-  ifce_enrollment?: number | null
+  ifce_enrollment?: string| null
 }
 
 type CreateStudentRepositoryPayload = Prisma.studentsCreateInput
@@ -21,9 +21,7 @@ type CreateStudentRepositoryPayload = Prisma.studentsCreateInput
 export class CreateStudentsService {
   constructor(private studentRepository: StudentsRepositoryInterface) {}
 
-  async handle({
-    cpf, full_name, email, parent_name, parent_phone, student_phone, address, 
-    date_of_birth, grade, belt, class_id, ifce_enrollment,
+  async handle({ cpf, full_name, email, parent_name, parent_phone, student_phone, address,  date_of_birth, grade, belt, class_id, ifce_enrollment,
   }: CreateStudentRequest) {
     
     const personalInfoCreate: any = {
