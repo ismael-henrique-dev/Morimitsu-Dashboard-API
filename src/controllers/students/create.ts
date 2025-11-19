@@ -2,8 +2,9 @@ import { Response } from "express"
 import { AuthRequest } from "../../middlewares/auth"
 import { CreateStudentsService } from "../../services/students/create"
 import { PrismaStudentsRepository } from "../../repositories/students"
-import { z } from "zod"
+import { number, string, z } from "zod"
 import { Belt } from "@prisma/client"
+import { th } from "zod/locales"
 
 // A função calculateAge não é mais usada para validação condicional, mas é mantida por segurança.
 const calculateAge = (dateOfBirth: Date): number => {
@@ -19,28 +20,31 @@ const calculateAge = (dateOfBirth: Date): number => {
 
 const enrollmentSchema = z
   .union([
-    z.string({ message: "Matrícula IFCE deve ser uma string com 12 dígitos" })
-      .length(12, "Matrícula IFCE deve ter exatamente 12 dígitos")
-      .transform((v) => parseInt(v, 10)), 
-    z.number().int(),
+    z.string(), // Aceita string na entrada
   ])
-  .optional()
-  .nullable()
-
+  .pipe(
+    z.string() // Força a validação como String
+      .transform(val => String(val)) // 🚨 CORREÇÃO: Converte qualquer entrada (number ou string) para String
+      .refine(val => val.length === 14 && /^\d+$/.test(val), {
+        message: "Matrícula IFCE deve ter 14 dígitos e conter apenas números."
+      })
+  );
 
 const createStudentSchema = z.object({
-    cpf: z.string().min(11, "CPF deve ter pelo menos 11 dígitos"),
+    cpf: z.string().min(11, "CPF deve ter pelo menos 11 dígitos").refine((val) => /^\d{11}$/.test(val), {
+        message: "CPF deve conter apenas números",
+    }),
     full_name: z.string().min(2, "Nome inválido"),
-    email: z.string().email("Email inválido"),
+    email: z.string().email({ message: "Email inválido" }),
     parent_name: z.string().min(2, "Nome do responsável inválido").optional().nullable(),
     parent_phone: z.string().min(8, "Telefone do responsável inválido").optional().nullable(),
     student_phone: z.string().min(8, "Telefone do aluno inválido"),
     address: z.string().min(5, "Endereço inválido"),
     date_of_birth: z.string().transform((v) => new Date(v)),
-    grade: z.number().int("A série deve ser um número inteiro"),
+    grade: z.number().int("O grau deve ser um número inteiro"),
     belt: z.nativeEnum(Belt).optional(),
     class_id: z.string().uuid().optional(),
-    ifce_enrollment: enrollmentSchema, 
+    ifce_enrollment: enrollmentSchema,
 })
 // O superRefine agora só checa se a data de nascimento é válida (a lógica de idade condicional foi removida).
 .superRefine((data, ctx) => {
@@ -71,7 +75,7 @@ export const createStudentController = async (req: AuthRequest, res: Response) =
             date_of_birth, grade, 
             belt: belt ?? Belt.white,
             class_id,
-            ifce_enrollment,
+            ifce_enrollment: ifce_enrollment,
         })
 
         // Formatação para envio seguro ao front

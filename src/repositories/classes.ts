@@ -40,6 +40,9 @@ export class PrismaClassesRepository implements ClassesRepositoryInterface {
             select: {
                 username: true,
             }
+          },
+          _count: {
+            select: { students: true },
           }
         }
     })
