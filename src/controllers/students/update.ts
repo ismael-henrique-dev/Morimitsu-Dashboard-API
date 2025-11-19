@@ -21,9 +21,6 @@ import { Belt } from '@prisma/client'
 
 export const updateStudentsController = async (req: AuthRequest, res: Response) => {
   try {
-    console.log('📥 Body recebido:', req.body)
-    console.log('🆔 Params:', req.params)
-    
     const parsedData = updateStudentSchema.parse({
         id: req.params.id,
         ...req.body,
@@ -31,14 +28,14 @@ export const updateStudentsController = async (req: AuthRequest, res: Response) 
 
     const service = new UpdateStudentService(new PrismaStudentsRepository())
 
-    const updatedStudent = await service.update(parsedData.id, {
-      grade: parsedData.grade,
-      belt: parsedData.belt,
-      personal_info: parsedData.personal_info
-        ? { update: parsedData.personal_info }
-        : undefined,
-      
-})
+const updatePayload: any = {}
+if (parsedData.grade !== undefined) updatePayload.grade = parsedData.grade
+if (parsedData.belt !== undefined) updatePayload.belt = parsedData.belt
+if (parsedData.personal_info) {
+  updatePayload.personal_info = { update: parsedData.personal_info }
+}
+
+const updatedStudent = await service.update(parsedData.id, updatePayload)
 
     return res.status(200).json({
       message: 'Aluno atualizado com sucesso!',
