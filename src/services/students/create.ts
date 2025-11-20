@@ -1,6 +1,20 @@
 import { Belt, students, Prisma } from '@prisma/client'
 import { StudentsRepositoryInterface } from '../../repositories/students'
 
+
+export class EmailConflictError extends Error {
+    constructor(email: string) {
+        super(`O email "${email}" já está cadastrado.`);
+        this.name = 'EmailConflictError';
+    }
+}
+
+export class CPFConflictError extends Error {
+    constructor(cpf: string = "11") {
+        super(`O CPF é inválido "${cpf}".`);
+        this.name = 'CPFConflictError';
+    }
+}
 interface CreateStudentRequest {
   cpf: string
   full_name: string
@@ -24,6 +38,13 @@ export class CreateStudentsService {
   async handle({ cpf, full_name, email, parent_name, parent_phone, student_phone, address,  date_of_birth, grade, belt, class_id, ifce_enrollment,
   }: CreateStudentRequest) {
     
+    const existingStudent = await this.studentRepository.findByEmail(email);
+
+        if (existingStudent) {
+            throw new EmailConflictError(email); // Lança o erro de negócio
+        }
+
+
     const personalInfoCreate: any = {
         cpf,
         full_name,
@@ -44,7 +65,6 @@ export class CreateStudentsService {
         grade,
         belt,
         ifce_enrollment,
-
         personal_info: {
             create: personalInfoCreate,
         },

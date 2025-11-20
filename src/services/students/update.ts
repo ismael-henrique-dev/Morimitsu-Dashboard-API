@@ -1,10 +1,11 @@
 import { students, Prisma } from '@prisma/client'
-import { StudentsRepositoryInterface, UpdateStudentData } from '../../repositories/students'
+import { StudentsRepositoryInterface, UpdateStudentPayloadFromController } from '../../repositories/students' 
 
 export class UpdateStudentService {
-  constructor(private studentsRepository: StudentsRepositoryInterface) {}
+    constructor(private studentsRepository: StudentsRepositoryInterface) {}
 
-  async update(studentId: string, data: UpdateStudentData) {
-    return await this.studentsRepository.update(studentId, data)
-  }
+    // 🚨 Usa o novo tipo aninhado
+    async update(studentId: string, data: UpdateStudentPayloadFromController) {
+        return await this.studentsRepository.update(studentId, data)
+    }
 }
