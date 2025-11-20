@@ -1,10 +1,10 @@
 import { Response } from "express"
 import { AuthRequest } from "../../middlewares/auth"
-import { CreateStudentsService } from "../../services/students/create"
+import { CPFConflictError, CreateStudentsService } from "../../services/students/create"
 import { PrismaStudentsRepository } from "../../repositories/students"
 import { number, string, z } from "zod"
 import { Belt } from "@prisma/client"
-import { th } from "zod/locales"
+import { EmailConflictError } from "../../services/students/create"
 
 // A função calculateAge não é mais usada para validação condicional, mas é mantida por segurança.
 const calculateAge = (dateOfBirth: Date): number => {
@@ -24,21 +24,19 @@ const enrollmentSchema = z
   ])
   .pipe(
     z.string() // Força a validação como String
-      .transform(val => String(val)) // 🚨 CORREÇÃO: Converte qualquer entrada (number ou string) para String
+      .transform(val => String(val)) // Converte qualquer entrada (number ou string) para String
       .refine(val => val.length === 14 && /^\d+$/.test(val), {
         message: "Matrícula IFCE deve ter 14 dígitos e conter apenas números."
       })
   );
 
 const createStudentSchema = z.object({
-    cpf: z.string().min(11, "CPF deve ter pelo menos 11 dígitos").refine((val) => /^\d{11}$/.test(val), {
-        message: "CPF deve conter apenas números",
-    }),
+    cpf: z.string().min(11, {message: "CPF inválido"}).max(11, {message: "CPF inválido"}),
     full_name: z.string().min(2, "Nome inválido"),
     email: z.string().email({ message: "Email inválido" }),
     parent_name: z.string().min(2, "Nome do responsável inválido").optional().nullable(),
-    parent_phone: z.string().min(8, "Telefone do responsável inválido").optional().nullable(),
-    student_phone: z.string().min(8, "Telefone do aluno inválido"),
+    parent_phone: z.string().min(8,{ message:"Telefone do responsável inválido"} ).optional().nullable(),
+    student_phone: z.string().min(8, { message: "Telefone do aluno inválido" }),
     address: z.string().min(5, "Endereço inválido"),
     date_of_birth: z.string().transform((v) => new Date(v)),
     grade: z.number().int("O grau deve ser um número inteiro"),
@@ -111,6 +109,11 @@ export const createStudentController = async (req: AuthRequest, res: Response) =
                 message: "Erro de validação",
                 errors: err.issues.map((e) => e.message),
             })
+        }
+        if (err instanceof EmailConflictError) {
+            return res.status(409).json({
+                message: "Email inválido", 
+            });
         }
 
         console.error(err)
