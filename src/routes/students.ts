@@ -5,6 +5,7 @@ import { getStudentsController } from '../controllers/students/get'
 import { updateStudentsController } from '../controllers/students/update'
 import { detailsStudentsController } from '../controllers/students/details'
 import { authenticate } from '../middlewares/auth'
+import { enrollStudentController } from '../controllers/students/enroll'
 
 const router = Router()
 
@@ -13,5 +14,6 @@ router.delete('/delete/:id', authenticate, deleteStudentController)
 router.get('/', authenticate, getStudentsController)
 router.patch('/update/:id', authenticate, updateStudentsController)
 router.get('/:id', authenticate, detailsStudentsController)
+router.post('/enroll', authenticate, enrollStudentController)
 
 export default router

@@ -20,7 +20,6 @@ export const getStudentsController = async (req: AuthRequest, res: Response) => 
 
         if (search) {
             const grade = Number(search);
-            // 🚨 MUDANÇA AQUI: Forçar MINÚSCULAS para corresponder ao seu Enum do Prisma.
             const lowerSearch = search.toLowerCase(); 
             
             // 1. Filtro por Faixa (Belt)
