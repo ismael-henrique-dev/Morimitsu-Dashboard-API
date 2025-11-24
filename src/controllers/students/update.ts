@@ -1,5 +1,3 @@
-// 📁 src/controllers/students/update.ts
-
 import { Response } from 'express'
 import { AuthRequest } from '../../middlewares/auth'
 import { UpdateStudentService } from '../../services/students/update'
@@ -43,10 +41,46 @@ export const updateStudentsController = async (req: AuthRequest, res: Response) 
         }
         
         const _response = await service.update(parsedData.id, updatePayload)
+
+        const { 
+            ifce_enrollment, 
+            class_id,               // Chave estrangeira interna
+            current_frequency,      // Campos de controle interno
+            total_frequency,        // Campos de controle interno
+            ...studentPublicData    // O resto dos dados (públicos)
+        } = _response;
+
+        // 2. Opcional: Re-formatar os dados para garantir que a saída final seja limpa,
+        // especialmente a data de nascimento, se necessário.
+        const personalInfo = studentPublicData.personal_info || {};
+        let dateOfBirthFormatted = personalInfo.date_of_birth
+            ? new Date(personalInfo.date_of_birth).toLocaleDateString('pt-BR')
+            : null;
+
+        // 3. Montar o objeto de resposta final
+        const formattedResponse = {
+            // Campos raiz (restantes de studentPublicData)
+            id: studentPublicData.id,
+            email: studentPublicData.email,
+            grade: studentPublicData.grade,
+            belt: studentPublicData.belt,
+            
+            // Campos aninhados (personal_info)
+            personal_info: {
+                full_name: personalInfo.full_name || null,
+                cpf: personalInfo.cpf || null,
+                date_of_birth: dateOfBirthFormatted, 
+                student_phone: personalInfo.student_phone || null,
+                parent_phone: personalInfo.parent_phone || null,
+                parent_name: personalInfo.parent_name || null,
+                address: personalInfo.address || null,
+            }
+        };
         
+        // 4. Retorno final com o objeto filtrado
         return res.status(200).json({
-            message: 'Aluno atualizado com sucesso!',
-            result: _response,
+             message: 'Aluno atualizado com sucesso!',
+             result: formattedResponse, // Retorna apenas o objeto sem ifce_enrollment
         })
     } catch (error) {
         if (error instanceof z.ZodError) {

@@ -1,5 +1,3 @@
-// 📁 src/controllers/students/get.ts
-
 import { Response } from 'express'
 import { AuthRequest } from '../../middlewares/auth'
 import { GetStudentsService } from '../../services/students/get'
