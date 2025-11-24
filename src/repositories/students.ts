@@ -23,11 +23,17 @@ export interface UpdateStudentPayloadFromController {
     }
 }
 
+// Tipo para os parâmetros de busca usados em `get` (pode ser null/undefined conforme o uso no repositório)
+export type SearchParam = {
+    full_name?: string
+    belt?: Belt
+    grade?: number
+} | null
+
 export interface StudentsRepositoryInterface {
     create(data: Prisma.studentsCreateInput): Promise<StudentWithPersonalInfo>
     delete(studentId: string): Promise<void>
-    get(search: string | null): Promise<StudentWithPersonalInfo[]>
-    // 🚨 ATUALIZAÇÃO: Usa o novo tipo aninhado
+    get(params: SearchParam): Promise<StudentWithPersonalInfo[]>
     update(studentId: string, data: UpdateStudentPayloadFromController): Promise<StudentWithPersonalInfo>
     findByEmail(email: string): Promise<StudentWithPersonalInfo | null>
     details(id: string): Promise<StudentWithPersonalInfo | null>
@@ -70,18 +76,39 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
         await prisma.students.delete({ where: { id: studentId } })
     }
 
-    async get(search: string | null): Promise<StudentWithPersonalInfo[]> {
-        return prisma.students.findMany({
-            where: search
-                ? {
-                    personal_info: {
-                        full_name: { contains: search, mode: 'insensitive' },
-                    },
-                }
-                : {},
-            include: { personal_info: true },
-        })
+    async get(params: SearchParam): Promise<StudentWithPersonalInfo[]> {
+    
+    // Se for null, retorna todos sem filtro
+    if (!params) {
+         return prisma.students.findMany({
+             include: { personal_info: true },
+         });
     }
+
+    const finalWhere: Prisma.studentsWhereInput = {};
+    
+    // 1. Filtro por FAIXA (Belt)
+    if (params.belt) {
+        // 🚨 Se o valor Belt for passado, o Prisma faz uma busca case-sensitive exata.
+        finalWhere.belt = params.belt; 
+    }
+    // 2. Filtro por NOME (Case-insensitive)
+    else if (params.full_name) {
+        finalWhere.personal_info = {
+            full_name: { contains: params.full_name, mode: 'insensitive' },
+        };
+    }
+    // 3. Filtro por SÉRIE
+    else if (params.grade) {
+        finalWhere.grade = params.grade;
+    }
+    
+    return prisma.students.findMany({
+        where: finalWhere,
+        include: { personal_info: true },
+    });
+    }
+
     async update(studentId: string, data: UpdateStudentPayloadFromController): Promise<StudentWithPersonalInfo> {
         
         // 1. Separação: Extrai 'personal_info' e o resto vai para 'studentData' (nível raiz)
