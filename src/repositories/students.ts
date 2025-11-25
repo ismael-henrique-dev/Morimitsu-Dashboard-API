@@ -26,6 +26,7 @@ export type SearchParam = {
     full_name?: string
     belt?: Belt
     grade?: number
+    currentPage?: number
 } | null
 
 export interface StudentsRepositoryInterface {
@@ -70,32 +71,45 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
     await prisma.students.delete({ where: { id: studentId } })
   }
 
-  async get(params: SearchParam): Promise<StudentWithPersonalInfo[]> {
+  async get(params: SearchParam & { currentPage?: string }): Promise<StudentWithPersonalInfo[]> {
     if (!params) {
       return prisma.students.findMany({
-        include: { personal_info: true, class: true },
+        include: { personal_info: true, class: true }
       })
     }
 
-    const where: Prisma.studentsWhereInput = {}
+    const andFilters: Prisma.studentsWhereInput[] = []
 
     if (params.belt) {
-      where.belt = params.belt
-    } 
-    else if (params.full_name) {
-      where.personal_info = {
-        full_name: { contains: params.full_name, mode: 'insensitive' },
-      }
-    } 
-    else if (params.grade) {
-      where.grade = params.grade
+      andFilters.push({ belt: params.belt })
     }
+
+    if (params.grade) {
+      andFilters.push({ grade: params.grade })
+    }
+
+    if (params.full_name) {
+      andFilters.push({
+        personal_info: {
+          is: { full_name: { contains: params.full_name, mode: 'insensitive' } }
+        }
+      })
+    }
+
+    const where: Prisma.studentsWhereInput = andFilters.length > 0 ? { AND: andFilters } : {}
+
+    // Aqui vem a paginação
+    const page = params.currentPage ? parseInt(params.currentPage, 10) : 1;
+    const pageSize = 10;
 
     return prisma.students.findMany({
       where,
       include: { personal_info: true, class: true },
+      skip: (page - 1) * pageSize,
+      take: pageSize
     })
-  }
+}
+
 
   async update(studentId: string, data: UpdateStudentPayloadFromController): Promise<StudentWithPersonalInfo> {
 

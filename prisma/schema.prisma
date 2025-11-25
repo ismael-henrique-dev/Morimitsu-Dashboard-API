@@ -127,4 +127,6 @@ model student_attendance {
 
   student     students       @relation(fields: [student_id], references: [id])
   session     class_sessions @relation(fields: [session_id], references: [id])
+
+  @@unique([student_id, session_id], name: "student_id_session_id")
 }
