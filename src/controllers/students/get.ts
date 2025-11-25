@@ -11,6 +11,7 @@ export const getStudentsController = async (req: AuthRequest, res: Response) => 
         const beltQuery = req.query.belt as string | undefined;
         const gradeQuery = req.query.grade as string | undefined;
         const currentPageQuery = req.query.currentPage as string | undefined;
+        const class_idQuery = req.query.class_id as string | undefined;
 
         const filters: SearchParam = {};
 
@@ -27,6 +28,9 @@ export const getStudentsController = async (req: AuthRequest, res: Response) => 
         if (currentPageQuery) {
             const currentPage = parseInt(currentPageQuery, 10);
             }
+        if (class_idQuery) {
+            filters.class_id = class_idQuery;
+        }
 
         const service = new GetStudentsService(new PrismaStudentsRepository());
         const students = await service.getStudents(filters);

@@ -1,6 +1,6 @@
 import { prisma } from "../lib"
 
-export class AttendanceRepository {
+export class PrismaAttendenceRepository {
   
   async markAttendance(studentId: string, sessionId: string, present: boolean) {
     return prisma.student_attendance.upsert({

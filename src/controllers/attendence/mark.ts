@@ -1,6 +1,7 @@
 import { Response } from "express"
 import { AuthRequest } from "../../middlewares/auth"
-import { MarkAttendanceService } from "../../services/attendance/mark"
+import { PrismaAttendenceRepository } from "../../repositories/attendence"
+import { MarkAttendanceService } from "../../services/attendence/mark"
 
 export const markAttendanceController = async (req: AuthRequest, res: Response) => {
   try {
@@ -12,8 +13,8 @@ export const markAttendanceController = async (req: AuthRequest, res: Response) 
       studentId,
       sessionId,
       present,
-      requesterId: req.user!.id,
-      requesterRole: req.user!.role
+      requesterId: String(req.user?.userId),
+      requesterRole: req.user?.role as "admin" | "instructor",
     })
 
     return res.status(200).json({

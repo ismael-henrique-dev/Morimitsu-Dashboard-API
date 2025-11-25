@@ -27,6 +27,7 @@ export type SearchParam = {
     belt?: Belt
     grade?: number
     currentPage?: number
+    class_id?: string
 } | null
 
 export interface StudentsRepositoryInterface {
@@ -86,6 +87,9 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
 
     if (params.grade) {
       andFilters.push({ grade: params.grade })
+    }
+    if (params.class_id) {
+      andFilters.push({ class_id: params.class_id })
     }
 
     if (params.full_name) {
