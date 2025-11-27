@@ -1,39 +1,44 @@
-import { PrismaClient } from "@prisma/client"
-const prisma = new PrismaClient()
+import { prisma } from "../../lib";
+import { PrismaAttendenceRepository } from "../../repositories/attendence";
 
 interface MarkAttendanceInput {
-  studentId: string
-  sessionId: string
-  present: boolean
-  requesterId: string
-  requesterRole: "admin" | "instructor"
+  studentId: string;
+  sessionId: string;
+  present: boolean;
+  requesterId: string;
+  requesterRole: "admin" | "instructor";
 }
 
 export class MarkAttendanceService {
-  async execute({ studentId, sessionId, present, requesterRole, requesterId }: MarkAttendanceInput) {
-    
-    // Instrutor só pode registrar frequência das próprias aulas
-    if (requesterRole === "instructor") {
-      const session = await prisma.class_sessions.findUnique({
-        where: { id: sessionId },
-      })
+  constructor(
+    public attendanceRepository = new PrismaAttendenceRepository()
+  ) {}
 
-      if (!session) throw new Error("Sessão não encontrada.")
+  async execute(data: MarkAttendanceInput) {
+    const { studentId, sessionId, present } = data;
 
-      if (session.instructor_id !== requesterId) {
-        throw new Error("Você não pode alterar frequência de aulas que não ministra.")
-      }
+    // 1. Registrar frequência na tabela student_attendance
+    const attendance = await this.attendanceRepository.markAttendance(
+      studentId,
+      sessionId,
+      present
+    );
+
+    // 2. Atualizar frequência do aluno (students table)
+    if (present) {
+      await prisma.students.update({
+        where: { id: studentId },
+        data: {
+          total_frequency: {
+            increment: 1
+          },
+          current_frequency: {
+            increment: 1
+          }
+        }
+      });
     }
 
-    // Registrar frequência
-    const attendance = await prisma.student_attendance.create({
-      data: {
-        student_id: studentId,
-        session_id: sessionId,
-        present,
-      }
-    })
-
-    return attendance
+    return attendance;
   }
 }

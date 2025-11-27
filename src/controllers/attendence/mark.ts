@@ -7,13 +7,15 @@ export const markAttendanceController = async (req: AuthRequest, res: Response) 
   try {
     const { studentId, sessionId, present } = req.body
 
-    const service = new MarkAttendanceService()
+    // Injetando o repository no service
+    const attendanceRepository = new PrismaAttendenceRepository()
+    const service = new MarkAttendanceService(attendanceRepository)
 
     const result = await service.execute({
       studentId,
       sessionId,
       present,
-      requesterId: String(req.user?.userId),
+      requesterId: req.user?.userId as string,
       requesterRole: req.user?.role as "admin" | "instructor",
     })
 
