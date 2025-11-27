@@ -1,32 +1,4 @@
-/**
- * @openapi
- * /auth/login:
- *   post:
- *     summary: Login de usuário
- *     tags:
- *       - Auth
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 example: "usuario@email.com"
- *               password:
- *                 type: string
- *                 example: "123456"
- *     responses:
- *       200:
- *         description: Login bem-sucedido
- */
-
-/**
+/** 
  * @openapi
  * /classes/create:
  *   post:
@@ -90,6 +62,7 @@
  *     responses:
  *       200:
  *         description: Turma deletada com sucesso
+ *       
  */
 
 /**
@@ -156,6 +129,53 @@
  *     responses:
  *       200:
  *         description: Lista de turmas encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 result:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       min_age:
+ *                         type: number
+ *                       max_age:
+ *                         type: number
+ *                       schedule:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             dayOfWeek:
+ *                               type: string
+ *                             time:
+ *                               type: string
+ *                       instructor_id:
+ *                         type: string
+ */
+
+/**
+ * @openapi
+ * /classes/details/{id}:
+ *   get:
+ *     summary: detalhes de uma turma
+ *     tags:
+ *       - Classes
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Detalhes da turma encontrada
  *         content:
  *           application/json:
  *             schema:

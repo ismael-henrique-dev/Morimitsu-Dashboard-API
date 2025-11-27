@@ -2,10 +2,14 @@ import authRoutes from './auth'
 import classesRoutes from './classes'
 import studentsRoutes from './students' 
 import usersRoutes from './users'
+import attendenceRoutes from './attendence'
+import sessionsRoutes from './sessions'
 
 export const routes = {
   auth: authRoutes,
   class: classesRoutes,
   student: studentsRoutes,
-  user: usersRoutes
+  user: usersRoutes,
+  attendence: attendenceRoutes,
+  sessions: sessionsRoutes,
 }

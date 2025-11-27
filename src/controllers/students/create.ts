@@ -30,13 +30,35 @@ const enrollmentSchema = z
       })
   );
 
+  const IsValidCpf = (cpf: string): boolean => {
+    cpf = cpf.replace(/[^\d]+/g, '');
+    if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+    let sum = 0;
+    for (let i = 0; i < 9; i++) sum += parseInt(cpf.charAt(i)) * (10 - i);
+    let rev = 11 - (sum % 11);
+    if (rev === 10 || rev === 11) rev = 0;
+    if (rev !== parseInt(cpf.charAt(9))) return false;
+    sum = 0;
+    for (let i = 0; i < 10; i++) sum += parseInt(cpf.charAt(i)) * (11 - i);
+    rev = 11 - (sum % 11);
+    if (rev === 10 || rev === 11) rev = 0;
+    if (rev !== parseInt(cpf.charAt(10))) return false;
+    return true;
+}
+
+  const phoneSchema = z.string().min(10, "numero invalido").max(11, "numero invalido")
+  .refine(val => /^\d+$/.test(val), { message: "Telefone deve conter apenas números" });
+    
+
 const createStudentSchema = z.object({
-    cpf: z.string().min(11, {message: "CPF inválido"}).max(11, {message: "CPF inválido"}),
+    cpf: z.string().min(11).max(11).refine((cpf) => IsValidCpf(cpf), {
+        message: "CPF inválido",
+    }),
     full_name: z.string().min(2, "Nome inválido"),
     email: z.string().email({ message: "Email inválido" }),
     parent_name: z.string().min(2, "Nome do responsável inválido").optional().nullable(),
-    parent_phone: z.string().min(8,{ message:"Telefone do responsável inválido"} ).optional().nullable(),
-    student_phone: z.string().min(8, { message: "Telefone do aluno inválido" }),
+    parent_phone: phoneSchema.optional().nullable(),
+    student_phone: phoneSchema,
     address: z.string().min(5, "Endereço inválido"),
     date_of_birth: z.string().transform((v) => new Date(v)),
     grade: z.number().int("O grau deve ser um número inteiro"),
@@ -44,18 +66,25 @@ const createStudentSchema = z.object({
     class_id: z.string().uuid().optional(),
     ifce_enrollment: enrollmentSchema,
 })
-// O superRefine agora só checa se a data de nascimento é válida (a lógica de idade condicional foi removida).
 .superRefine((data, ctx) => {
-    if (isNaN(data.date_of_birth.getTime())) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Data de nascimento inválida (formato incorreto).",
-            path: ['date_of_birth'],
-        })
-        return
-    }
-})
+  const age = calculateAge(data.date_of_birth)
 
+  if (age < 4) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Aluno deve ter pelo menos 4 anos.",
+      path: ['date_of_birth']
+    })
+  }
+
+  if (isNaN(data.date_of_birth.getTime())) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Data de nascimento inválida.",
+      path: ['date_of_birth']
+    })
+  }
+})
 
 export const createStudentController = async (req: AuthRequest, res: Response) => {
     try {
@@ -113,6 +142,11 @@ export const createStudentController = async (req: AuthRequest, res: Response) =
         if (err instanceof EmailConflictError) {
             return res.status(409).json({
                 message: "Email inválido", 
+            });
+        }
+        if (err instanceof CPFConflictError) {
+            return res.status(409).json({
+                message: "CPF inválido",
             });
         }
 

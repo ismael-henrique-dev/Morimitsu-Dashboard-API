@@ -1,15 +1,15 @@
 import { prisma } from "../lib"
 
 export interface UsersRepository {
-  findAdminsAndInstructors(): Promise<any[]>
+  findInstructors(): Promise<any[]>
 }
 
 export class PrismaUsersRepository implements UsersRepository {
-  async findAdminsAndInstructors() {
+  async findInstructors() {
     return prisma.users.findMany({
       where: {
         role: {
-          in: ["admin", "instructor"],
+          in: ["instructor"],
         },
       },
       select: {
