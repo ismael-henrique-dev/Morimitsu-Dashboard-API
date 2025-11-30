@@ -175,4 +175,17 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
     include: { personal_info: true }
 }) as StudentWithPersonalInfo;
   }
+
+  async listEnrolled() {
+  return prisma.students.findMany({
+    where: {
+      class_id: { not: null } // só os enturmados
+    },
+    include: {
+      personal_info: true,
+      class: true
+    }
+  });
+}
+
 }

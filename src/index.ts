@@ -17,6 +17,7 @@ app.use('/students', routes.student)
 app.use('/users', routes.user)
 app.use('/attendence', routes.attendence)
 app.use('/sessions', routes.sessions)
+app.use('/graduations', routes.graduations)
 
 const port = ENV.PORT
 
