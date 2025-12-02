@@ -4,6 +4,6 @@ import { createGraduationController } from "../controllers/graduations/create";
 
 const router = Router();
 
-router.post("/create", authenticate, createGraduationController);
+router.post("/create/:id", authenticate, createGraduationController);
 
 export default router;

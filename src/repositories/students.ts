@@ -91,7 +91,6 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
     if (params.class_id) {
       andFilters.push({ class_id: params.class_id })
     }
-
     if (params.full_name) {
       andFilters.push({
         personal_info: {
