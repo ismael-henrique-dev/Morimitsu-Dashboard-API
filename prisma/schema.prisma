@@ -20,9 +20,17 @@ enum AnnouncementType {
 enum Belt {
   white
   gray
+  gray_white
+  gray_black
   yellow
+  yellow_white
+  yellow_black
   orange
+  orange_white
+  orange_black
   green
+  green_white
+  green_black
   blue
   purple
   brown
@@ -129,4 +137,19 @@ model student_attendance {
   session     class_sessions @relation(fields: [session_id], references: [id])
 
   @@unique([student_id, session_id], name: "student_id_session_id")
+}
+
+enum GraduationCategory {
+  kids
+  infanto_juvenil
+  juvenil_adulto
+}
+
+model graduation_preferences {
+  id           String             @id @default(uuid())
+  category     GraduationCategory
+  belt         Belt
+  min_age      Int?
+  max_age      Int?
+  total_trainings Int
 }
