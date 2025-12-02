@@ -5,6 +5,7 @@ import usersRoutes from './users'
 import attendenceRoutes from './attendence'
 import sessionsRoutes from './sessions'
 import graduationsRoutes from './graduations'
+import preferencesRoutes from './preferences'
 
 export const routes = {
   auth: authRoutes,
@@ -13,5 +14,6 @@ export const routes = {
   user: usersRoutes,
   attendence: attendenceRoutes,
   sessions: sessionsRoutes,
-  graduations: graduationsRoutes
+  graduations: graduationsRoutes,
+  preferences: preferencesRoutes
 }
