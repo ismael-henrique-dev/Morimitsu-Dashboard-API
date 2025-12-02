@@ -88,7 +88,7 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
     if (params.grade) {
       andFilters.push({ grade: params.grade })
     }
-    if (params.class_id) {
+    if (params.class_id !== null && params.class_id !== undefined && params.class_id !== "") {
       andFilters.push({ class_id: params.class_id })
     }
     if (params.full_name) {
