@@ -4,6 +4,6 @@ import { createSessionController } from "../controllers/sessions/create";
 
 const router = Router();
 
-router.post("/create", authenticate, createSessionController);
+router.post("/create/:id", authenticate, createSessionController);
 
 export default router;
