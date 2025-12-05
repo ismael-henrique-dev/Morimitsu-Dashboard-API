@@ -8,7 +8,6 @@ export class GetPreferencesService {
 
     const result: any[] = []
 
-    // ---- KIDS ----
     const kids = prefs.filter((p) => p.category === 'kids')
     if (kids.length > 0) {
       result.push({
@@ -21,7 +20,6 @@ export class GetPreferencesService {
       })
     }
 
-    // ---- INFANTO-JUVENIL ----
     const infanto = prefs.filter((p) => p.category === 'infanto_juvenil')
     if (infanto.length > 0) {
       result.push({
@@ -34,7 +32,6 @@ export class GetPreferencesService {
       })
     }
 
-    // ---- JUVENIL/ADULTO ----
     const adulto = prefs.filter((p) => p.category === 'juvenil_adulto')
     adulto.forEach((item) => {
       result.push({
