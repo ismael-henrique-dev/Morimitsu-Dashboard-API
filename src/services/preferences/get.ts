@@ -20,24 +20,26 @@ export class GetPreferencesService {
       })
     }
 
-    const infanto = prefs.filter((p) => p.category === 'infanto_juvenil')
-    if (infanto.length > 0) {
+    const infant = prefs.filter((p) => p.category === 'infanto_juvenil')
+    if (infant.length > 0) {
       result.push({
-        id: infanto[0].id,
+        id: infant[0].id,
         category: 'INFANTO-JUVENIL',
         belt: 'colored_belts',
-        minAge: infanto[0].min_age,
-        maxAge: infanto[0].max_age,
-        totalTrains: infanto[0].total_trainings,
+        minAge: infant[0].min_age,
+        maxAge: infant[0].max_age,
+        totalTrains: infant[0].total_trainings,
       })
     }
 
-    const adulto = prefs.filter((p) => p.category === 'juvenil_adulto')
-    adulto.forEach((item) => {
+    const adult = prefs.filter((p) => p.category === 'juvenil_adulto')
+    adult.forEach((item) => {
       result.push({
         id: item.id,
         category: 'JUVENIL-ADULTO',
         belt: item.belt, // **faixa real**
+        minAge: adult[0].min_age,
+        maxAge: adult[0].max_age,
         totalTrains: item.total_trainings,
       })
     })
