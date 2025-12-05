@@ -8,7 +8,6 @@ export class GetPreferencesService {
 
     const result: any[] = []
 
-    // ---- KIDS ----
     const kids = prefs.filter((p) => p.category === 'kids')
     if (kids.length > 0) {
       result.push({
@@ -21,12 +20,11 @@ export class GetPreferencesService {
       })
     }
 
-    // ---- INFANTO-JUVENIL ----
     const infanto = prefs.filter((p) => p.category === 'infanto_juvenil')
     if (infanto.length > 0) {
       result.push({
         id: infanto[0].id,
-        category: 'INFANTO_JUVENIL',
+        category: 'INFANTO-JUVENIL',
         belt: 'colored_belts',
         minAge: infanto[0].min_age,
         maxAge: infanto[0].max_age,
@@ -34,12 +32,11 @@ export class GetPreferencesService {
       })
     }
 
-    // ---- JUVENIL/ADULTO ----
     const adulto = prefs.filter((p) => p.category === 'juvenil_adulto')
     adulto.forEach((item) => {
       result.push({
         id: item.id,
-        category: 'juvenil_adulto',
+        category: 'JUVENIL-ADULTO',
         belt: item.belt, // **faixa real**
         totalTrains: item.total_trainings,
       })
