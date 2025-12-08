@@ -1,44 +1,43 @@
-import { prisma } from "../../lib";
+import { Prisma } from "@prisma/client";
 import { PrismaAttendenceRepository } from "../../repositories/attendence";
 
+import { prisma } from "../../lib";
+
 interface MarkAttendanceInput {
-  studentId: string;
   sessionId: string;
-  present: boolean;
-  requesterId: string;
-  requesterRole: "admin" | "instructor";
+  students: {
+    studentId: string;
+    present: boolean;
+  }[];
 }
 
 export class MarkAttendanceService {
   constructor(
-    public attendanceRepository = new PrismaAttendenceRepository()
+    public attendanceRepository: PrismaAttendenceRepository
   ) {}
 
-  async execute(data: MarkAttendanceInput) {
-    const { studentId, sessionId, present } = data;
+  async execute({ sessionId, students }: MarkAttendanceInput) {
+    const results = [];
 
-    // 1. Registrar frequência na tabela student_attendance
-    const attendance = await this.attendanceRepository.markAttendance(
-      studentId,
-      sessionId,
-      present
-    );
-
-    // 2. Atualizar frequência do aluno (students table)
-    if (present) {
-      await prisma.students.update({
-        where: { id: studentId },
-        data: {
-          total_frequency: {
-            increment: 1
-          },
-          current_frequency: {
-            increment: 1
+    for (const s of students) {
+      const record = await prisma.student_attendance.upsert({
+        where: {
+          student_id_session_id: {
+            student_id: s.studentId,
+            session_id: sessionId
           }
+        },
+        update: { present: s.present },
+        create: {
+          student_id: s.studentId,
+          session_id: sessionId,
+          present: s.present
         }
       });
+
+      results.push(record);
     }
 
-    return attendance;
+    return results;
   }
 }
