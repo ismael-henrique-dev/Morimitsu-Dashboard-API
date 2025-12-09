@@ -1,6 +1,16 @@
-import { prisma } from "../../lib";
+import { Prisma } from "@prisma/client";
 import { PrismaAttendenceRepository } from "../../repositories/attendence";
 
+<<<<<<< HEAD
+import { prisma } from "../../lib";
+
+interface MarkAttendanceInput {
+  sessionId: string;
+  students: {
+    studentId: string;
+    present: boolean;
+  }[];
+=======
 interface AttendanceItem {
   studentId: string;
   present: boolean;
@@ -11,13 +21,39 @@ interface MarkAttendanceInput {
   requesterId: string;
   requesterRole: "admin" | "instructor";
   attendance: AttendanceItem[];
+>>>>>>> bb5e1e9bd018decf7e58bea80e80ca7fd0d1a6a3
 }
 
 export class MarkAttendanceService {
   constructor(
-    public attendanceRepository = new PrismaAttendenceRepository()
+    public attendanceRepository: PrismaAttendenceRepository
   ) {}
 
+<<<<<<< HEAD
+  async execute({ sessionId, students }: MarkAttendanceInput) {
+    const results = [];
+
+    for (const s of students) {
+      const record = await prisma.student_attendance.upsert({
+        where: {
+          student_id_session_id: {
+            student_id: s.studentId,
+            session_id: sessionId
+          }
+        },
+        update: { present: s.present },
+        create: {
+          student_id: s.studentId,
+          session_id: sessionId,
+          present: s.present
+        }
+      });
+
+      results.push(record);
+    }
+
+    return results;
+=======
   async execute(data: MarkAttendanceInput) {
     const { sessionId, attendance } = data;
 
@@ -45,5 +81,6 @@ export class MarkAttendanceService {
     );
 
     return { message: "Attendance registered", saved };
+>>>>>>> bb5e1e9bd018decf7e58bea80e80ca7fd0d1a6a3
   }
 }
