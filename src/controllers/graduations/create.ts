@@ -5,9 +5,9 @@ import { Belt } from "@prisma/client";
 import { z } from "zod"
 
 const createGraduationSchema = z.object({
-  Belt: z.nativeEnum(Belt).optional(),
-  grade: z.int().optional(),
-  graduation_date: z.date(),
+  belt: z.nativeEnum(Belt).optional(),
+  grade: z.number().int().optional(),
+  graduation_date: z.coerce.date(),
   studentId: z.string().uuid()
 
 })
