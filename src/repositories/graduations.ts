@@ -12,7 +12,7 @@ export class PrismaGraduationsRepository {
     });
   }
 
-  async listByStudent(studentId: string) {
+  async getGraduation(studentId: string) {
     return prisma.graduations.findMany({
       where: { student_id: studentId },
       orderBy: { graduation_date: "desc" }

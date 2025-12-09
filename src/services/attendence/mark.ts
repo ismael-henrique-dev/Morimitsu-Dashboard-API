@@ -1,12 +1,16 @@
 import { prisma } from "../../lib";
 import { PrismaAttendenceRepository } from "../../repositories/attendence";
 
-interface MarkAttendanceInput {
+interface AttendanceItem {
   studentId: string;
-  sessionId: string;
   present: boolean;
+}
+
+interface MarkAttendanceInput {
+  sessionId: string;
   requesterId: string;
   requesterRole: "admin" | "instructor";
+  attendance: AttendanceItem[];
 }
 
 export class MarkAttendanceService {
@@ -15,30 +19,31 @@ export class MarkAttendanceService {
   ) {}
 
   async execute(data: MarkAttendanceInput) {
-    const { studentId, sessionId, present } = data;
+    const { sessionId, attendance } = data;
 
-    // 1. Registrar frequência na tabela student_attendance
-    const attendance = await this.attendanceRepository.markAttendance(
-      studentId,
+    // 1. Registrar attendance em lote
+    const saved = await this.attendanceRepository.markAttendances(
       sessionId,
-      present
+      attendance
     );
 
-    // 2. Atualizar frequência do aluno (students table)
-    if (present) {
-      await prisma.students.update({
-        where: { id: studentId },
-        data: {
-          total_frequency: {
-            increment: 1
-          },
-          current_frequency: {
-            increment: 1
-          }
+    // 2. Atualizar Frequência de forma individual
+    // (isso poderia ser otimizado, mas assim fica claro)
+    await Promise.all(
+      attendance.map(item => {
+        if (item.present) {
+          return prisma.students.update({
+            where: { id: item.studentId },
+            data: {
+              total_frequency: { increment: 1 },
+              current_frequency: { increment: 1 }
+            }
+          });
         }
-      });
-    }
+        return null;
+      })
+    );
 
-    return attendance;
+    return { message: "Attendance registered", saved };
   }
 }
