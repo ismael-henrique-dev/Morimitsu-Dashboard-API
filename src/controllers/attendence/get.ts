@@ -8,13 +8,19 @@ export const getAttendanceController = async (req: AuthRequest, res: Response) =
 
     const repository = new PrismaAttendenceRepository();
 
-    const result = await repository.getSessions({
+    const sessions = await repository.getSessions({
       className: className as string,
       instructorName: instructorName as string,
       date: date as string
-});
+    });
 
-    return res.status(200).json(result);
+    const formatted = sessions.map((s: any) => ({
+      ...s,
+      session_date: new Date(s.session_date).toLocaleDateString("pt-BR"), 
+    }));
+    
+
+    return res.status(200).json(formatted);
 
   } catch (err: any) {
     return res.status(400).json({
