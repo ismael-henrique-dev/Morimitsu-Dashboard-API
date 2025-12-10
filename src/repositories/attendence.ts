@@ -109,6 +109,7 @@ export class PrismaAttendenceRepository {
     return prisma.students.findMany({
       where: { class_id: classId },
       select: {
+        id: true,
         personal_info: {
           select: {
             full_name: true
