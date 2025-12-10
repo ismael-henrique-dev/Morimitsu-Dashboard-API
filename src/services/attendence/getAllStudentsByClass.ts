@@ -8,5 +8,6 @@ export class GetAllStudentsByClassService {
       throw new Error("class_id é obrigatório.");
     }
     return await this.repo.getAllStudentsByClass(classId);
+
   }
 }
