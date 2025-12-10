@@ -1,26 +1,42 @@
+import { tr } from "zod/locales";
 import { prisma } from "../lib"
 
+type UpdateAttendanceParams = {
+  student_id: string;
+  classId: string;
+  present: boolean;
+};
+
 interface SessionFilters {
-  classId?: string;
+  class_id?: string;
   instructorId?: string;
   date?: string; // yyyy-mm-dd
 }
 
 export class PrismaAttendenceRepository {
   
-  async markAttendances(sessionId: string, attendance: { studentId: string, present: boolean }[]) {
-    
-    const data = attendance.map(a => ({
-      student_id: a.studentId,
-      session_id: sessionId,
-      present: a.present
-    }));
+  async markAttendances(classId: string,attendance: { studentId: string; present: boolean }[]) {
 
-    return prisma.student_attendance.createMany({
-      data,
-      skipDuplicates: true
-    });
+    const session = await prisma.class_sessions.findFirst({
+    where: { 
+      class_id: classId, 
+    },
+  });
+
+  if (!session) {
+    throw new Error("Nenhuma sessão encontrada para esta turma.");
   }
+
+  return prisma.student_attendance.createMany({
+    data: attendance.map(a => ({
+      session_id: session.id,
+      student_id: a.studentId,   // <-- CORRETO
+      present: a.present
+    })),
+    skipDuplicates: true
+  });
+}
+
 
   async getSessions(filters: any) {
   const { className, instructorName, date } = filters;
@@ -30,8 +46,8 @@ export class PrismaAttendenceRepository {
       class: className
         ? {
             name: {
-              contains: className,  // <<<<< AGORA FUNCIONA PARCIAL
-              mode: "insensitive"   // <<<<< SEM CASE SENSITIVITY
+              contains: className, 
+              mode: "insensitive"     
             },
           }
         : undefined,
@@ -43,30 +59,67 @@ export class PrismaAttendenceRepository {
               mode: "insensitive"
             },
           }
-        : undefined,
+          : undefined,
 
-      session_date: date ? new Date(date) : undefined,
-    },
-    include: {
-      class: {
-        select: { name: true }
+        session_date: date ? new Date(date) : undefined,
       },
-      instructor: {
-        select: { username: true }
-      },
-      attendances: {
-        include: {
-          student: {
-            select: {
-              id: true,
-              current_frequency: true,
-              total_frequency: true
+
+      select: {
+
+        session_date: true,
+
+        class: {
+          select: { 
+            name: true,
+
+            _count: {
+              select: {
+                students: true
+              }
             }
           }
-        }
-      }
+
+        },
+
+        instructor: {
+          select: { username: true }
+        },
+      },
+      orderBy: { session_date: "desc" }
+    });
+  }
+
+  async updateAttendance(params: {
+  student_id: string;
+  session_id: string;
+  present: boolean;
+}) {
+  return prisma.student_attendance.updateMany({
+    where: {
+      student_id: params.student_id,
+      session_id: params.session_id
     },
-    orderBy: { session_date: "desc" }
+    data: {
+      present: params.present
+    }
   });
 }
+
+  async getAllStudentsByClass(classId: string) {
+    return prisma.students.findMany({
+      where: { class_id: classId },
+      select: {
+        personal_info: {
+          select: {
+            full_name: true
+          }
+        }, // se quiser trazer info pessoal
+      },
+      orderBy: {
+        personal_info: {
+          full_name: "asc" // opcional, para ordenar pelo nome
+        }
+      }
+    });
+  }
 }

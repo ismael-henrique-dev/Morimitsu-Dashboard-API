@@ -5,11 +5,12 @@ import { MarkAttendanceService } from "../../services/attendence/mark";
 
 export const markAttendanceController = async (req: AuthRequest, res: Response) => {
   try {
-    const { sessionId, attendance } = req.body;
+    const { class_id } = req.params;
+    const {classId, attendance } = req.body;
 
-    if (!sessionId || !attendance || !Array.isArray(attendance)) {
+    if (!attendance || !Array.isArray(attendance)) {
       return res.status(400).json({
-        message: "Formato inválido. Envie { sessionId, attendance: [] }"
+        message: "Formato inválido. Envie { attendance: [] }"
       });
     }
 
@@ -18,14 +19,14 @@ export const markAttendanceController = async (req: AuthRequest, res: Response) 
     );
 
     const result = await service.execute({
-      sessionId,
-      attendance, // array de alunos
+      classId,
+      attendance,
       requesterId: req.user?.userId as string,
       requesterRole: req.user?.role as "admin" | "instructor"
     });
 
     return res.status(200).json({
-      message: "Frequência registrada com sucesso.",
+      message: "Frequência registrada com sucesso",
       result
     });
 

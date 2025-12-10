@@ -7,7 +7,7 @@ interface AttendanceItem {
 }
 
 interface MarkAttendanceInput {
-  sessionId: string;
+  classId: string;
   requesterId: string;
   requesterRole: "admin" | "instructor";
   attendance: AttendanceItem[];
@@ -19,16 +19,17 @@ export class MarkAttendanceService {
   ) {}
 
   async execute(data: MarkAttendanceInput) {
-    const { sessionId, attendance } = data;
-
-    // 1. Registrar attendance em lote
+    const { classId, attendance } = data;
+    // 2. Registrar attendance em lote
     const saved = await this.attendanceRepository.markAttendances(
-      sessionId,
-      attendance
+      classId,
+      attendance.map(a => ({
+        studentId: a.studentId,
+        present: a.present
+      }))
     );
 
-    // 2. Atualizar Frequência de forma individual
-    // (isso poderia ser otimizado, mas assim fica claro)
+    // 3. Atualizar frequência dos alunos presentes
     await Promise.all(
       attendance.map(item => {
         if (item.present) {
@@ -44,8 +45,7 @@ export class MarkAttendanceService {
       })
     );
 
-    return { message: "Attendance registered", saved };
+    return {message: "Attendance registered", saved };
   }
 }
 
-//Service
