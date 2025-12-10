@@ -4,14 +4,15 @@ import { PrismaAttendenceRepository } from "../../repositories/attendence";
 
 export const getAttendanceController = async (req: AuthRequest, res: Response) => {
   try {
-    const { className, instructorName, date } = req.query;
+    const { className, instructorName, date, total_frequency } = req.query;
 
     const repository = new PrismaAttendenceRepository();
 
     const sessions = await repository.getSessions({
       className: className as string,
       instructorName: instructorName as string,
-      date: date as string
+      date: date as string,
+      total_frequency: total_frequency
     });
 
     const formatted = sessions.map((s: any) => ({
