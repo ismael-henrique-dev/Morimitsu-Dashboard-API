@@ -45,7 +45,7 @@ export class MarkAttendanceService {
       })
     );
 
-    return {message: "Attendance registered", saved };
+    return {message: "Presença aplicada" };
   }
 }
 

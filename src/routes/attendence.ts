@@ -9,7 +9,7 @@ const router = Router();
 
 router.post("/mark/:class_id", authenticate, markAttendanceController);
 router.get("/get", authenticate, getAttendanceController)
-router.patch("/update", authenticate, updateAttendanceController)
+router.patch("/update/:class_id", authenticate, updateAttendanceController)
 router.get("/getAll/:class_id", authenticate, getAllStudentsByClassController)
 
 export default router;

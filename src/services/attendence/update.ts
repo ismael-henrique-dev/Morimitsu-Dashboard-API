@@ -1,3 +1,4 @@
+import { prisma } from "../../lib";
 import { PrismaAttendenceRepository } from "../../repositories/attendence";
 
 type AttendanceItem = {
@@ -28,7 +29,28 @@ export class UpdateAttendanceService {
       });
       updatedList.push(updated);
     }
-
-    return updatedList;
+    await Promise.all(
+  attendances.map(item => {
+    if (item.present === false) {
+      return prisma.students.update({
+        where: { id: item.student_id },
+        data: {
+          total_frequency: { decrement: 1 },
+          current_frequency: { decrement: 1 }
+        }
+      });
+    }
+    if (item.present === true) {
+      return prisma.students.update({
+        where: { id: item.student_id },
+        data: {
+          total_frequency: { increment: 1 },
+          current_frequency: { increment: 1 }
+        }
+      });
+    }
+    return null;
+      })
+    );
   }
 }

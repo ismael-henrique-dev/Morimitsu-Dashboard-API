@@ -1,4 +1,4 @@
-import { tr } from "zod/locales";
+import { id, tr } from "zod/locales";
 import { prisma } from "../lib"
 
 type UpdateAttendanceParams = {
@@ -30,7 +30,7 @@ export class PrismaAttendenceRepository {
   return prisma.student_attendance.createMany({
     data: attendance.map(a => ({
       session_id: session.id,
-      student_id: a.studentId,   // <-- CORRETO
+      student_id: a.studentId,   
       present: a.present
     })),
     skipDuplicates: true
@@ -42,7 +42,7 @@ export class PrismaAttendenceRepository {
   const { className, instructorName, date } = filters;
 
   return prisma.class_sessions.findMany({
-    where: {
+    where: { 
       class: className
         ? {
             name: {
@@ -65,7 +65,7 @@ export class PrismaAttendenceRepository {
       },
 
       select: {
-
+        id: true,
         session_date: true,
 
         class: {
@@ -78,9 +78,7 @@ export class PrismaAttendenceRepository {
               }
             }
           }
-
         },
-
         instructor: {
           select: { username: true }
         },
@@ -114,7 +112,7 @@ export class PrismaAttendenceRepository {
           select: {
             full_name: true
           }
-        }, // se quiser trazer info pessoal
+        }, 
       },
       orderBy: {
         personal_info: {
