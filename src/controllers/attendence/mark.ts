@@ -1,38 +1,59 @@
 import { Response } from "express";
 import { AuthRequest } from "../../middlewares/auth";
-import { PrismaAttendenceRepository } from "../../repositories/attendence";
 import { MarkAttendanceService } from "../../services/attendence/mark";
+import z from "zod";
 
-export const markAttendanceController = async (req: AuthRequest, res: Response) => {
+const schema = z.object({
+  attendance: z.array(
+    z.object({
+      studentId: z.string().uuid(),
+      present: z.boolean()
+    })
+  )
+});
+
+export async function markAttendanceController(
+  req: AuthRequest,
+  res: Response
+) {
   try {
-    const { class_id } = req.params;
-    const {classId, attendance } = req.body;
+    // 1️⃣ session_id vem da URL
+    const { session_id } = req.params;
 
-    if (!attendance || !Array.isArray(attendance)) {
+    if (!session_id) {
       return res.status(400).json({
-        message: "Formato inválido. Envie { attendance: [] }"
+        message: "session_id é obrigatório"
       });
     }
 
-    const service = new MarkAttendanceService(
-      new PrismaAttendenceRepository()
-    );
+    // 2️⃣ valida body
+    const { attendance } = schema.parse(req.body);
+
+    // 3️⃣ executa service
+    const service = new MarkAttendanceService();
 
     const result = await service.execute({
-      classId,
-      attendance,
-      requesterId: req.user?.userId as string,
-      requesterRole: req.user?.role as "admin" | "instructor"
+      sessionId: session_id,
+      attendance
     });
 
+    // 4️⃣ retorno direto pro front
     return res.status(200).json({
       message: "Frequência registrada com sucesso",
-      result
+      attendance: result
     });
 
   } catch (err: any) {
-    return res.status(400).json({
-      message: err.message || "Erro ao registrar frequência."
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({
+        message: err.issues[0]?.message || "Erro de validação"
+      });
+    }
+
+    console.error(err);
+
+    return res.status(500).json({
+      message: err.message || "Erro ao marcar presença"
     });
   }
-};
+}

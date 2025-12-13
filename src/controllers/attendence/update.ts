@@ -13,16 +13,19 @@ const updateSchema = z.object({
 
 export async function updateAttendanceController(req: AuthRequest, res: Response) {
   try {
-
-    const { session_id, attendance } = updateSchema.parse(req.body);
+    const { session_id } = req.params;
+    const { attendance } = updateSchema.parse({
+      session_id,
+      attendance: req.body.attendance
+    });
 
     const service = new UpdateAttendanceService();
 
     const result = await service.execute({
       session_id,
       attendances: attendance.map(a => ({
-        student_id: a.studentId,  // <-- traduz para o formato do prisma
-        present: a.present,
+        student_id: a.studentId,
+        present: a.present
       }))
     });
 
@@ -33,7 +36,7 @@ export async function updateAttendanceController(req: AuthRequest, res: Response
 
   } catch (err: any) {
     return res.status(400).json({
-      message: err?.message || "Erro ao atualizar frequência"
+      message: err.message || "Erro ao atualizar frequência"
     });
   }
 }
