@@ -4,6 +4,7 @@ import { MarkAttendanceService } from "../../services/attendence/mark";
 import z from "zod";
 
 const schema = z.object({
+  session_date: z.string(),
   attendance: z.array(
     z.object({
       studentId: z.string().uuid(),
@@ -17,43 +18,34 @@ export async function markAttendanceController(
   res: Response
 ) {
   try {
-    // 1️⃣ session_id vem da URL
-    const { session_id } = req.params;
+    const { class_id } = req.params;
+    const instructorId = req.user!.userId;
 
-    if (!session_id) {
-      return res.status(400).json({
-        message: "session_id é obrigatório"
-      });
-    }
+    const body = z.object({
+      session_date: z.string(),
+      attendance: z.array(
+        z.object({
+          studentId: z.string().uuid(),
+          present: z.boolean()
+        })
+      )
+    }).parse(req.body);
 
-    // 2️⃣ valida body
-    const { attendance } = schema.parse(req.body);
-
-    // 3️⃣ executa service
     const service = new MarkAttendanceService();
 
     const result = await service.execute({
-      sessionId: session_id,
-      attendance
+      classId: class_id,
+      sessionDate: new Date(body.session_date),
+      instructorId,
+      attendance: body.attendance
     });
 
-    // 4️⃣ retorno direto pro front
-    return res.status(200).json({
+    return res.json({
       message: "Frequência registrada com sucesso",
       attendance: result
     });
 
   } catch (err: any) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({
-        message: err.issues[0]?.message || "Erro de validação"
-      });
-    }
-
-    console.error(err);
-
-    return res.status(500).json({
-      message: err.message || "Erro ao marcar presença"
-    });
+    return res.status(400).json({ message: err.message });
   }
 }
