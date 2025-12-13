@@ -7,45 +7,70 @@ interface AttendanceItem {
 }
 
 interface MarkAttendanceInput {
-  classId: string;
-  requesterId: string;
-  requesterRole: "admin" | "instructor";
+  sessionId: string;
   attendance: AttendanceItem[];
 }
 
 export class MarkAttendanceService {
   constructor(
-    public attendanceRepository = new PrismaAttendenceRepository()
+    private repo: PrismaAttendenceRepository = new PrismaAttendenceRepository()
   ) {}
 
-  async execute(data: MarkAttendanceInput) {
-    const { classId, attendance } = data;
-    // 2. Registrar attendance em lote
-    const saved = await this.attendanceRepository.markAttendances(
-      classId,
-      attendance.map(a => ({
-        studentId: a.studentId,
-        present: a.present
-      }))
+  async execute({ sessionId, attendance }: MarkAttendanceInput) {
+    // 1️⃣ Buscar presenças anteriores (para não duplicar frequência)
+    const previousAttendance = await prisma.student_attendance.findMany({
+      where: { session_id: sessionId },
+      select: {
+        student_id: true,
+        present: true
+      }
+    });
+
+    const prevMap = new Map(
+      previousAttendance.map(a => [a.student_id, a.present])
     );
 
-    // 3. Atualizar frequência dos alunos presentes
+    // 2️⃣ Upsert das presenças
+    await this.repo.markAttendanceForSession(sessionId, attendance);
+
+    // 3️⃣ Atualizar frequência APENAS se mudou de false → true
     await Promise.all(
-      attendance.map(item => {
-        if (item.present) {
-          return prisma.students.update({
-            where: { id: item.studentId },
-            data: {
-              total_frequency: { increment: 1 },
-              current_frequency: { increment: 1 }
-            }
-          });
-        }
-        return null;
+      attendance.map(async item => {
+        if (!item.present) return;
+
+        const wasPresentBefore = prevMap.get(item.studentId) === true;
+        if (wasPresentBefore) return;
+
+        await prisma.students.update({
+          where: { id: item.studentId },
+          data: {
+            total_frequency: { increment: 1 },
+            current_frequency: { increment: 1 }
+          }
+        });
       })
     );
 
-    return {message: "Presença aplicada" };
+    // 4️⃣ Retorno LIMPO pro front (nome + presença)
+    const studentIds = attendance.map(a => a.studentId);
+
+return prisma.student_attendance.findMany({
+  where: {
+    session_id: sessionId,
+    student_id: { in: studentIds }
+  },
+  select: {
+    present: true,
+    student: {
+      select: {
+        personal_info: {
+          select: {
+            full_name: true
+              }
+            }
+          }
+        }
+      }
+    });
   }
 }
-

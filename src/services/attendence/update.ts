@@ -15,41 +15,50 @@ export class UpdateAttendanceService {
   private repository = new PrismaAttendenceRepository();
 
   async execute({ session_id, attendances }: UpdateAttendanceParams) {
-    if (!session_id || !attendances || attendances.length === 0) {
-      throw new Error("Dados incompletos para atualizar a frequência.");
+    if (!session_id || attendances.length === 0) {
+      throw new Error("Dados incompletos.");
     }
 
-    const updatedList = [];
+    // 1️⃣ Buscar presenças atuais
+    const currentAttendances = await prisma.student_attendance.findMany({
+      where: { session_id },
+      select: {
+        student_id: true,
+        present: true
+      }
+    });
 
-    for (const item of attendances) {
-      const updated = await this.repository.updateAttendance({
-        student_id: item.student_id,
-        session_id,
-        present: item.present,
-      });
-      updatedList.push(updated);
-    }
+    const currentMap = new Map(
+      currentAttendances.map(a => [a.student_id, a.present])
+    );
+
+    // 2️⃣ Atualizar presença + frequência
     await Promise.all(
-  attendances.map(item => {
-    if (item.present === false) {
-      return prisma.students.update({
-        where: { id: item.student_id },
-        data: {
-          total_frequency: { decrement: 1 },
-          current_frequency: { decrement: 1 }
+      attendances.map(async item => {
+        const wasPresent = currentMap.get(item.student_id) ?? false;
+        const isPresent = item.present;
+
+        // atualiza presença
+        await this.repository.updateAttendance({
+          student_id: item.student_id,
+          session_id,
+          present: isPresent
+        });
+
+        // frequência só muda se houve mudança
+        if (wasPresent !== isPresent) {
+          await prisma.students.update({
+            where: { id: item.student_id },
+            data: {
+              total_frequency: {
+                increment: isPresent ? 1 : -1
+              },
+              current_frequency: {
+                increment: isPresent ? 1 : -1
+              }
+            }
+          });
         }
-      });
-    }
-    if (item.present === true) {
-      return prisma.students.update({
-        where: { id: item.student_id },
-        data: {
-          total_frequency: { increment: 1 },
-          current_frequency: { increment: 1 }
-        }
-      });
-    }
-    return null;
       })
     );
   }
