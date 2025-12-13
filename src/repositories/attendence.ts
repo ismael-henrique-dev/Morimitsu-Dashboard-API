@@ -73,17 +73,26 @@ export class PrismaAttendenceRepository {
   }
 
   async getAllStudentsByClass(classId: string) {
-    return prisma.students.findMany({
-      where: { class_id: classId },
-      select: {
-        id: true,
-        personal_info: { select: { full_name: true } }
-      },
-      orderBy: {
-        personal_info: { full_name: "asc" }
+  return prisma.students.findMany({
+    where: {
+      class_id: classId
+    },
+    orderBy: {
+      personal_info: {
+        full_name: "asc"
       }
-    });
-  }
+    },
+    select: {
+      id: true,
+      personal_info: {
+        select: {
+          full_name: true
+        }
+      }
+    }
+  });
+}
+
 
   async updateAttendance({
   student_id,

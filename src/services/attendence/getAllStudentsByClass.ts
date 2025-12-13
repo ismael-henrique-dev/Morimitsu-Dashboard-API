@@ -7,7 +7,14 @@ export class GetAllStudentsByClassService {
     if (!classId) {
       throw new Error("class_id é obrigatório.");
     }
-    return await this.repo.getAllStudentsByClass(classId);
 
+    const students = await this.repo.getAllStudentsByClass(classId);
+
+    // 🔹 Normaliza pro mesmo formato da frequência
+    return students.map(student => ({
+      student_id: student.id,
+      full_name: student.personal_info?.full_name ?? "",
+      present: false
+    }));
   }
 }
