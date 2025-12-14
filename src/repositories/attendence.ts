@@ -43,7 +43,11 @@ export class PrismaAttendenceRepository {
           class: {
             select: {
               id: true,
-              name: true
+              name: true,
+              _count: {
+                select: {
+                  students: true
+                }}
             }
           },
           instructor: {
