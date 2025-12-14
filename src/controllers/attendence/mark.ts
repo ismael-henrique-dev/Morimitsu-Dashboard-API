@@ -19,33 +19,35 @@ export async function markAttendanceController(
 ) {
   try {
     const { class_id } = req.params;
-    const instructorId = req.user!.userId;
+    if (!class_id) {
+      return res.status(400).json({ message: "class_id é obrigatório" });
+    }
 
-    const body = z.object({
-      session_date: z.string(),
-      attendance: z.array(
-        z.object({
-          studentId: z.string().uuid(),
-          present: z.boolean()
-        })
-      )
-    }).parse(req.body);
+    const instructorId = req.user?.userId;
+    if (!instructorId) {
+      return res.status(401).json({ message: "Usuário não autenticado" });
+    }
+
+    const { session_date, attendance } = schema.parse(req.body);
 
     const service = new MarkAttendanceService();
 
     const result = await service.execute({
       classId: class_id,
-      sessionDate: new Date(body.session_date),
       instructorId,
-      attendance: body.attendance
+      session_date,
+      attendance
     });
 
-    return res.json({
+    return res.status(200).json({
       message: "Frequência registrada com sucesso",
       attendance: result
     });
 
   } catch (err: any) {
-    return res.status(400).json({ message: err.message });
+    console.error(err);
+    return res.status(400).json({
+      message: err.message || "Erro ao marcar presença"
+    });
   }
 }

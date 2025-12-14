@@ -3,23 +3,16 @@ import { PrismaAttendenceRepository } from "../../repositories/attendence";
 interface GetAttendanceFilters {
   classId?: string;
   instructorId?: string;
-  date?: string; // yyyy-mm-dd
+  date?: string;
+  currentPage?: number;
 }
 
 export class GetAttendanceService {
   constructor(
-    public attendanceRepository = new PrismaAttendenceRepository()
+    private repository = new PrismaAttendenceRepository()
   ) {}
 
   async execute(filters: GetAttendanceFilters) {
-    const { classId, instructorId, date } = filters;
-
-    const sessions = await this.attendanceRepository.getSessions({
-      classId,
-      instructorId,
-      date
-    });
-
-    return sessions;
+    return this.repository.getSessions(filters);
   }
 }

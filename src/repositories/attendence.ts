@@ -1,131 +1,112 @@
 import { prisma } from "../lib";
 
-type UpdateAttendanceParams = {
-  student_id: string;
-  session_id: string;
-  present: boolean;
-};
+interface GetSessionsFilters {
+  classId?: string;
+  instructorId?: string;
+  date?: string; // yyyy-mm-dd
+  currentPage?: number;
+}
+
+const PER_PAGE = 10;
 
 export class PrismaAttendenceRepository {
 
-  async markAttendanceForSession(
+  async getSessions(filters: GetSessionsFilters) {
+    const { classId, instructorId, date, currentPage = 1 } = filters;
+
+    let dateFilter = undefined;
+
+    if (date) {
+      const start = new Date(date);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(date);
+      end.setHours(23, 59, 59, 999);
+
+      dateFilter = {
+        gte: start,
+        lte: end
+      };
+    }
+
+    const where = {
+      ...(classId ? { class_id: classId } : {}),
+      ...(instructorId ? { instructor_id: instructorId } : {}),
+      ...(dateFilter ? { session_date: dateFilter } : {})
+    };
+
+    const [total, sessions] = await prisma.$transaction([
+      prisma.class_sessions.count({ where }),
+      prisma.class_sessions.findMany({
+        where,
+        include: {
+          class: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
+          instructor: {
+            select: {
+              id: true,
+              username: true
+            }
+          },
+          attendances: {
+            select: {
+              present: true,
+              student: {
+                select: {
+                  personal_info: {
+                    select: {
+                      full_name: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        orderBy: {
+          session_date: "desc"
+        },
+        skip: (currentPage - 1) * PER_PAGE,
+        take: PER_PAGE
+      })
+    ]);
+
+    return {
+      data: sessions,
+      pagination: {
+        total,
+        currentPage,
+        perPage: PER_PAGE,
+        totalPages: Math.ceil(total / PER_PAGE)
+      }
+    };
+  }
+
+  async upsertAttendance(
     sessionId: string,
     attendance: { studentId: string; present: boolean }[]
   ) {
     return Promise.all(
-      attendance.map(a =>
+      attendance.map(item =>
         prisma.student_attendance.upsert({
           where: {
             student_id_session_id: {
-              student_id: a.studentId,
+              student_id: item.studentId,
               session_id: sessionId
             }
           },
-          update: { present: a.present },
+          update: { present: item.present },
           create: {
             session_id: sessionId,
-            student_id: a.studentId,
-            present: a.present
+            student_id: item.studentId,
+            present: item.present
           }
         })
       )
     );
-  }
-
-  async getSessions(filters: any) {
-    const { className, instructorName, date } = filters;
-
-    return prisma.class_sessions.findMany({
-      where: { 
-        class: className
-          ? {
-              name: { contains: className, mode: "insensitive" }
-            }
-          : undefined,
-
-        instructor: instructorName
-          ? {
-              username: { contains: instructorName, mode: "insensitive" }
-            }
-          : undefined,
-
-        session_date: date ? new Date(date) : undefined
-      },
-
-      select: {
-        id: true,
-        session_date: true,
-
-        class: {
-          select: { 
-            name: true,
-            _count: { select: { students: true } }
-          }
-        },
-
-        instructor: {
-          select: { username: true }
-        },
-      },
-
-      orderBy: { session_date: "desc" }
-    });
-  }
-
-  async getAllStudentsByClass(classId: string) {
-  return prisma.students.findMany({
-    where: {
-      class_id: classId
-    },
-    orderBy: {
-      personal_info: {
-        full_name: "asc"
-      }
-    },
-    select: {
-      id: true,
-      personal_info: {
-        select: {
-          full_name: true
-        }
-      }
-    }
-  });
-}
-
-
-  async updateAttendance({
-  student_id,
-  session_id,
-  present
-}: UpdateAttendanceParams) {
-
-  return prisma.student_attendance.upsert({
-    where: {
-      student_id_session_id: {
-        student_id,
-        session_id
-      }
-    },
-    update: {
-      present
-    },
-    create: {
-      student_id,
-      session_id,
-      present
-    },
-    include: {
-      student: {
-        select: {
-          personal_info: {
-            select: {
-              full_name: true
-              }
-            }
-          }
-        }
-      }
-    });
   }
 }

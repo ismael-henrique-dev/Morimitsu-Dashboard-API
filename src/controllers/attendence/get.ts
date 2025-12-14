@@ -1,31 +1,27 @@
 import { Response } from "express";
 import { AuthRequest } from "../../middlewares/auth";
-import { PrismaAttendenceRepository } from "../../repositories/attendence";
+import { GetAttendanceService } from "../../services/attendence/get";
 
-export const getAttendanceController = async (req: AuthRequest, res: Response) => {
+export const getAttendanceController = async (
+  req: AuthRequest,
+  res: Response
+) => {
   try {
-    const { className, instructorName, date, total_frequency } = req.query;
+    const { classId, instructorId, date, currentPage } = req.query;
 
-    const repository = new PrismaAttendenceRepository();
+    const service = new GetAttendanceService();
 
-    const sessions = await repository.getSessions({
-      className: className as string,
-      instructorName: instructorName as string,
+    const result = await service.execute({
+      classId: classId as string,
+      instructorId: instructorId as string,
       date: date as string,
-      total_frequency: total_frequency
+      currentPage: currentPage ? Number(currentPage) : 1
     });
 
-    const formatted = sessions.map((s: any) => ({
-      ...s,
-      session_date: new Date(s.session_date).toLocaleDateString("pt-BR"), 
-    }));
-    
-
-    return res.status(200).json(formatted);
-
+    return res.status(200).json(result);
   } catch (err: any) {
     return res.status(400).json({
-      message: err.message || "Erro ao buscar frequências."
+      message: err.message || "Erro ao buscar frequências"
     });
   }
 };
