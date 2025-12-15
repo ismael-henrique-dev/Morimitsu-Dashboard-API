@@ -14,7 +14,6 @@ export class GetAllStudentsByClassService {
     return students.map(student => ({
       student_id: student.id,
       full_name: student.personal_info?.full_name ?? "",
-      present: false
     }));
   }
 }

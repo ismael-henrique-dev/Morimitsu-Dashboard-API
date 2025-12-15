@@ -11,6 +11,17 @@ const PER_PAGE = 10;
 
 export class PrismaAttendenceRepository {
 
+   async getAllStudentsByClass(classId: string) {
+    return prisma.students.findMany({
+      where: {
+        class_id: classId
+      },
+      include: {
+        personal_info: true
+      }
+    });
+  }
+  
   async getSessions(filters: GetSessionsFilters) {
     const { classId, instructorId, date, currentPage = 1 } = filters;
 
