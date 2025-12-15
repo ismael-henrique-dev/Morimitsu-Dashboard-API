@@ -1,7 +1,6 @@
 import { Prisma, students, Belt } from '@prisma/client'
 import { prisma } from '../lib'
 
-// Tipo de retorno com a relação incluída
 type StudentWithPersonalInfo = students & { personal_info: any | null }
 
 export interface UpdateStudentPayloadFromController {
@@ -16,19 +15,19 @@ export interface UpdateStudentPayloadFromController {
         parent_name?: string | null
         parent_phone?: string | null
         student_phone?: string
-        address?: string // AQUI o address está aninhado
+        address?: string 
         date_of_birth?: Date
     }
 }
 
-// Tipo para os parâmetros de busca usados em `get` (pode ser null/undefined conforme o uso no repositório)
 export type SearchParam = {
-    full_name?: string
-    belt?: Belt
-    grade?: number
-    currentPage?: number
-    class_id?: string
+  full_name?: string
+  belt?: Belt
+  grade?: number
+  currentPage?: number | string
+  class_id?: string
 } | null
+
 
 export interface StudentsRepositoryInterface {
     create(data: Prisma.studentsCreateInput): Promise<StudentWithPersonalInfo>
@@ -38,6 +37,10 @@ export interface StudentsRepositoryInterface {
     findByEmail(email: string): Promise<StudentWithPersonalInfo | null>
     details(id: string): Promise<StudentWithPersonalInfo | null>
     enroll(studentId: string, classId: string): Promise<StudentWithPersonalInfo>
+    listEnrolled(classId?: string): Promise<StudentWithPersonalInfo[]>
+    listNotEnrolledEligibleByClass(minAge?: number | null, maxAge?: number | null): Promise<StudentWithPersonalInfo[]>
+    unenroll(studentId: string): Promise<StudentWithPersonalInfo>
+    
 }
 
 export class PrismaStudentsRepository implements StudentsRepositoryInterface {
@@ -68,7 +71,7 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
     await prisma.graduations.deleteMany({ where: { student_id: studentId } })
     await prisma.announcements.deleteMany({ where: { student_id: studentId } })
     await prisma.student_attendance.deleteMany({ where: { student_id: studentId } })
-
+    
     await prisma.students.delete({ where: { id: studentId } })
   }
 
@@ -175,16 +178,64 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
 }) as StudentWithPersonalInfo;
   }
 
-  async listEnrolled() {
+  async listEnrolled(classId?: string): Promise<StudentWithPersonalInfo[]> {
+  const whereClause = classId
+    ? { class_id: classId }       // filtra só a turma específica
+    : { class_id: { not: null } } // todos os alunos enturmados
+
   return prisma.students.findMany({
-    where: {
-      class_id: { not: null } // só os enturmados
-    },
+    where: whereClause,
     include: {
-      personal_info: true,
+      personal_info: true,  // necessário para pegar o full_name
       class: true
     }
+  }) as Promise<StudentWithPersonalInfo[]>;
+}
+
+
+async unenroll(studentId: string) {
+  return prisma.students.update({
+    where: { id: studentId },
+    data: {
+      class: { disconnect: true } 
+    },
+    include: { personal_info: true }
   });
 }
 
+  async listNotEnrolledEligibleByClass(
+  minAge?: number | null,
+  maxAge?: number | null
+): Promise<StudentWithPersonalInfo[]> {
+  const today = new Date();
+
+  return prisma.students.findMany({
+    where: {
+      class_id: null,
+      personal_info: {
+        is: {
+          date_of_birth: {
+            ...(minAge !== null && minAge !== undefined && {
+              lte: new Date(
+                today.getFullYear() - minAge,
+                today.getMonth(),
+                today.getDate()
+              )
+            }),
+            ...(maxAge !== null && maxAge !== undefined && {
+              gte: new Date(
+                today.getFullYear() - maxAge - 1,
+                today.getMonth(),
+                today.getDate() + 1
+              )
+            })
+          }
+        }
+      }
+    },
+    include: {
+      personal_info: true
+      }
+    });
+  }
 }
