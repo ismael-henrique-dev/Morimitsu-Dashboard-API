@@ -1,13 +1,43 @@
 import { Request, Response } from "express";
 import { PrismaStudentsRepository } from "../../repositories/students";
+import { PrismaClassesRepository } from "../../repositories/classes";
+import { ListEnrolledStudentsService } from "../../services/students/listEnrolled";
 
-export const listEnrolledStudentsController = async (req: Request, res: Response) => {
+export const listEnrolledStudentsController = async (
+  req: Request,
+  res: Response
+) => {
   try {
-    const repo = new PrismaStudentsRepository();
-    const result = await repo.listEnrolled();
-    return res.json(result);
+    const { classId } = req.params;
+    const search =
+      typeof req.query.search === "string" ? req.query.search : undefined;
+
+    if (!classId) {
+      return res.status(400).json({
+        message: "É preciso informar uma turma"
+      });
+    }
+
+    const service = new ListEnrolledStudentsService(
+      new PrismaStudentsRepository(),
+      new PrismaClassesRepository()
+    );
+
+    const students = await service.execute(classId, search);
+
+    // Mapeia apenas id e full_name
+    const simplified = students
+      .filter(s => s.personal_info) // garante que personal_info existe
+      .map(s => ({
+        id: s.id,
+        full_name: s.personal_info!.full_name
+      }));
+
+    return res.json(simplified);
 
   } catch (err: any) {
-    return res.status(400).json({ message: err.message });
+    return res.status(400).json({
+      message: err.message
+    });
   }
 };

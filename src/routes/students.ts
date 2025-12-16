@@ -7,6 +7,8 @@ import { detailsStudentsController } from '../controllers/students/details'
 import { authenticate } from '../middlewares/auth'
 import { enrollStudentController } from '../controllers/students/enroll'
 import { listEnrolledStudentsController } from '../controllers/students/listEnrolled'
+import { unenrollStudentController } from '../controllers/students/unenroll'
+import { listNotEnrolledStudentsController } from '../controllers/students/notEnrolled'
 
 const router = Router()
 
@@ -15,7 +17,9 @@ router.delete('/delete/:id', authenticate, deleteStudentController)
 router.get('/', authenticate, getStudentsController)
 router.patch('/update/:id', authenticate, updateStudentsController)
 router.get('/:id', authenticate, detailsStudentsController)
-router.post('/enroll', authenticate, enrollStudentController)
-router.get('/enrolled', authenticate, listEnrolledStudentsController)
+router.post('/enroll/:class_id', authenticate, enrollStudentController)
+router.get('/enrolled/:classId', authenticate, listEnrolledStudentsController);
+router.delete("/unenroll/:studentId", authenticate, unenrollStudentController);
+router.get("/not-enrolled/:classId", authenticate, listNotEnrolledStudentsController)
 
 export default router

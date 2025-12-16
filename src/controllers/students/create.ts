@@ -26,7 +26,7 @@ const enrollmentSchema = z
     z.string() // Força a validação como String
       .transform(val => String(val)) // Converte qualquer entrada (number ou string) para String
       .refine(val => val.length === 14 && /^\d+$/.test(val), {
-        message: "Matrícula IFCE deve ter 14 dígitos e conter apenas números."
+        message: "Matrícula IFCE deve ter 14 dígitos."
       })
   );
 
@@ -46,7 +46,7 @@ const enrollmentSchema = z
     return true;
 }
 
-  const phoneSchema = z.string().min(10, "numero invalido").max(11, "numero invalido")
+  const phoneSchema = z.string().min(10, "numero de telefone invalido").max(11, "numero de telefone invalido")
   .refine(val => /^\d+$/.test(val), { message: "Telefone deve conter apenas números" });
     
 

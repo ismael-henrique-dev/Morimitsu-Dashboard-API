@@ -1,11 +1,19 @@
-import { PrismaStudentsRepository } from "../../repositories/students";
+import { StudentsRepositoryInterface } from "../../repositories/students";
+import { ClassesRepositoryInterface } from "../../repositories/classes";
 
 export class ListEnrolledStudentsService {
-  constructor(private studentsRepository = new PrismaStudentsRepository()) {}
+  constructor(
+    private studentsRepo: StudentsRepositoryInterface,
+    private classesRepo: ClassesRepositoryInterface
+  ) {}
 
-  async listEnrolled() {
-    const students = await this.studentsRepository.listEnrolled();
+  async execute(classId: string, search?: string) {
+    const classData = await this.classesRepo.details(classId);
 
-    return students;
+    if (!classData) {
+      throw new Error("Turma não encontrada");
+    }
+
+    return this.studentsRepo.listEnrolled(classId, search);
   }
 }

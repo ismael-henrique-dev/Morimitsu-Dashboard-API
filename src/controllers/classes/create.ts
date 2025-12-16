@@ -4,25 +4,19 @@ import { CreateClassService } from '../../services/classes/create'
 import { PrismaClassesRepository } from '../../repositories/classes'
 import z from 'zod'
 
-const createClassSchema = z
-  .object({
-    name: z.string(),
-    minAge: z.number().min(4, 'A idade mínima deve ser pelo menos 4 anos.'),
-    maxAge: z.number().nullable().optional(),
-    schedule: z.array(
-      z.object({
-        dayOfWeek: z.string(),
-        time: z.string(),
-      })
-    ),
-  })
-  .refine(
-    (data) => data.maxAge == null || data.maxAge > data.minAge,
-    {
-      message: 'A idade máxima deve ser maior que a idade mínima.',
-      path: ['maxAge'],
-    }
-  )
+const createClassSchema = z.object({
+  name: z.string().min(2),
+  minAge: z.coerce.number().min(4),
+  maxAge: z.coerce.number(),
+  schedule: z.array(
+    z.object({
+      dayOfWeek: z.string(),
+      time: z.string(),
+    })
+  ),
+  instructor_id: z.string().uuid(), 
+})
+
 
 export const createClassController = async (req: AuthRequest,res: Response) => {
   try {

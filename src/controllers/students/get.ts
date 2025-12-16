@@ -25,9 +25,12 @@ export const getStudentsController = async (req: AuthRequest, res: Response) => 
             const grade = parseInt(gradeQuery, 10);
             if (!isNaN(grade)) filters.grade = grade;
         }
+
         if (currentPageQuery) {
-            const currentPage = parseInt(currentPageQuery, 10);
-            }
+            const page = parseInt(currentPageQuery, 10);
+        if (!isNaN(page)) filters.currentPage = page;
+        }
+
         if (class_idQuery) {
             filters.class_id = class_idQuery;
         }

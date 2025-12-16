@@ -15,7 +15,7 @@ const createGraduationSchema = z.object({
 export const createGraduationController = async (req: AuthRequest, res: Response) => {
   try {
     const { belt, grade, graduation_date } = req.body;
-    const studentId = req.params.id
+    const studentId = req.params.id;
 
     const service = new CreateGraduationService();
 
@@ -23,15 +23,17 @@ export const createGraduationController = async (req: AuthRequest, res: Response
       studentId,
       belt: belt as Belt,
       grade,
-      graduation_date: new Date(graduation_date)
+      graduation_date: new Date(graduation_date),
     });
 
     return res.status(201).json({
-      message: "Graduação registrada com sucesso!",
-      result,
+      full_name: result.student.personal_info?.full_name ?? null,
+      graduation_date: result.graduation_date,
+      belt: result.belt,
+      grade: result.grade,
     });
-    
   } catch (err: any) {
-    return res.status(500).json({ message: "Erro interno no servidor"});
+    console.error("Erro ao criar graduação:", err); // log detalhado do erro
+    return res.status(400).json({ message: err.message ?? "Erro interno no servidor" });
   }
 };

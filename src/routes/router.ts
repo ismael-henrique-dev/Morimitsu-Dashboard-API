@@ -6,6 +6,7 @@ import attendenceRoutes from './attendence'
 import sessionsRoutes from './sessions'
 import graduationsRoutes from './graduations'
 import preferencesRoutes from './preferences'
+import announcementsRoutes from './announcements'
 
 export const routes = {
   auth: authRoutes,
@@ -15,5 +16,6 @@ export const routes = {
   attendence: attendenceRoutes,
   sessions: sessionsRoutes,
   graduations: graduationsRoutes,
-  preferences: preferencesRoutes
+  preferences: preferencesRoutes,
+  announcements: announcementsRoutes
 }

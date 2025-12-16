@@ -1,7 +1,6 @@
 import { Prisma, students, Belt } from '@prisma/client'
 import { prisma } from '../lib'
 
-// Tipo de retorno com a relação incluída
 type StudentWithPersonalInfo = students & { personal_info: any | null }
 
 export interface UpdateStudentPayloadFromController {
@@ -16,19 +15,19 @@ export interface UpdateStudentPayloadFromController {
         parent_name?: string | null
         parent_phone?: string | null
         student_phone?: string
-        address?: string // AQUI o address está aninhado
+        address?: string 
         date_of_birth?: Date
     }
 }
 
-// Tipo para os parâmetros de busca usados em `get` (pode ser null/undefined conforme o uso no repositório)
 export type SearchParam = {
-    full_name?: string
-    belt?: Belt
-    grade?: number
-    currentPage?: number
-    class_id?: string
+  full_name?: string
+  belt?: Belt
+  grade?: number
+  currentPage?: number | string
+  class_id?: string
 } | null
+
 
 export interface StudentsRepositoryInterface {
     create(data: Prisma.studentsCreateInput): Promise<StudentWithPersonalInfo>
@@ -38,6 +37,10 @@ export interface StudentsRepositoryInterface {
     findByEmail(email: string): Promise<StudentWithPersonalInfo | null>
     details(id: string): Promise<StudentWithPersonalInfo | null>
     enroll(studentId: string, classId: string): Promise<StudentWithPersonalInfo>
+    listEnrolled(classId: string, search?: string): Promise<StudentWithPersonalInfo[]>
+    listNotEnrolledEligibleByClass( minAge?: number | null, maxAge?: number | null, search?: string): Promise<StudentWithPersonalInfo[]>
+    unenroll(studentId: string): Promise<StudentWithPersonalInfo>
+    
 }
 
 export class PrismaStudentsRepository implements StudentsRepositoryInterface {
@@ -56,11 +59,51 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
     })
   }
 
+  private getAge(birthDate: Date): number {
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  }
+
   async details(id: string) {
-    return prisma.students.findUnique({
+    // 1️⃣ Busca aluno com personal_info e classe
+    const student = await prisma.students.findUnique({
       where: { id },
       include: { personal_info: true, class: true },
-    })
+    });
+
+    if (!student || !student.personal_info) return null;
+
+    // 2️⃣ Calcula idade
+    const age = this.getAge(student.personal_info.date_of_birth);
+
+    // 3️⃣ Define categoria com base na idade
+    let category: 'kids' | 'infanto_juvenil' | 'juvenil_adulto';
+    if (age < 12) category = 'kids';
+    else if (age <= 16) category = 'infanto_juvenil';
+    else category = 'juvenil_adulto';
+
+    // 4️⃣ Busca graduation_preferences pela categoria
+    const prefs = await prisma.graduation_preferences.findMany({
+      where: { category },
+    });
+
+    // 5️⃣ Filtra pelo belt (exceto kids que pode pegar qualquer)
+    let pref;
+    if (category === 'kids') {
+      pref = prefs[0]; // pega qualquer preferência disponível
+    } else {
+      pref = prefs.find(p => p.belt === student.belt);
+    }
+
+    return {
+      ...student,
+      total_trainings: pref?.total_trainings ?? null,
+    };
   }
 
   async delete(studentId: string): Promise<void> {
@@ -68,7 +111,7 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
     await prisma.graduations.deleteMany({ where: { student_id: studentId } })
     await prisma.announcements.deleteMany({ where: { student_id: studentId } })
     await prisma.student_attendance.deleteMany({ where: { student_id: studentId } })
-
+    
     await prisma.students.delete({ where: { id: studentId } })
   }
 
@@ -171,20 +214,112 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
     data: {
         class: { connect: { id: classId } }
     },
-    include: { personal_info: true }
+    select: { personal_info: {
+      select: { 
+        id: true,
+        full_name: true}
+    } }
 }) as StudentWithPersonalInfo;
   }
 
-  async listEnrolled() {
+  async listEnrolled(classId: string, search?: string) {
   return prisma.students.findMany({
     where: {
-      class_id: { not: null } // só os enturmados
+      class_id: classId,
+      ...(search && {
+        personal_info: {
+          is: {
+            full_name: {
+              contains: search,
+              mode: "insensitive"
+            },
+          }
+        }
+      })
     },
     include: {
-      personal_info: true,
-      class: true
+      personal_info: true
     }
   });
 }
 
+async listEnrolledSimple(classId: string, search?: string) {
+  const students = await prisma.students.findMany({
+    where: {
+      class_id: classId,
+      personal_info: { isNot: null },
+      ...(search && {
+        personal_info: {
+          is: {
+            full_name: {
+              contains: search,
+              mode: "insensitive"
+            }
+          }
+        }
+      })
+    },
+    include: { personal_info: true }
+  });
+
+  return students.map(student => ({
+    id: student.id,
+    full_name: student.personal_info!.full_name
+  }));
+}
+
+
+async unenroll(studentId: string) {
+  return prisma.students.update({
+    where: { id: studentId },
+    data: {
+      class: { disconnect: true } 
+    },
+    include: { personal_info: true }
+  });
+}
+
+  async listNotEnrolledEligibleByClass(
+  minAge?: number | null,
+  maxAge?: number | null,
+  search?: string
+): Promise<StudentWithPersonalInfo[]> {
+
+  const today = new Date();
+
+  return prisma.students.findMany({
+    where: {
+      class_id: null,
+      personal_info: {
+        is: {
+          ...(search && {
+            full_name: {
+              contains: search,
+              mode: "insensitive"
+            }
+          }),
+          date_of_birth: {
+            ...(minAge !== null && minAge !== undefined && {
+              lte: new Date(
+                today.getFullYear() - minAge,
+                today.getMonth(),
+                today.getDate()
+              )
+            }),
+            ...(maxAge !== null && maxAge !== undefined && {
+              gte: new Date(
+                today.getFullYear() - maxAge - 1,
+                today.getMonth(),
+                today.getDate() + 1
+              )
+            })
+          }
+        }
+      }
+    },
+    include: {
+      personal_info: true
+      }
+    });
+  }
 }
