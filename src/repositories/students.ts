@@ -192,7 +192,7 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
             full_name: {
               contains: search,
               mode: "insensitive"
-            }
+            },
           }
         }
       })
@@ -202,6 +202,32 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
     }
   });
 }
+
+async listEnrolledSimple(classId: string, search?: string) {
+  const students = await prisma.students.findMany({
+    where: {
+      class_id: classId,
+      personal_info: { isNot: null },
+      ...(search && {
+        personal_info: {
+          is: {
+            full_name: {
+              contains: search,
+              mode: "insensitive"
+            }
+          }
+        }
+      })
+    },
+    include: { personal_info: true }
+  });
+
+  return students.map(student => ({
+    id: student.id,
+    full_name: student.personal_info!.full_name
+  }));
+}
+
 
 async unenroll(studentId: string) {
   return prisma.students.update({
