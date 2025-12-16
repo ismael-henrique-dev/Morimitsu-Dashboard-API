@@ -21,6 +21,32 @@ export class PrismaAttendenceRepository {
       }
     });
   }
+
+  async getAllForUpdate(sessionId: string) {
+  return prisma.class_sessions.findUnique({
+    where: {
+      id: sessionId,
+    },
+    select: {
+      class_id: true,
+      session_date: true,
+      attendances: {
+        select: {
+          present: true,
+          student: {
+            select: {
+              personal_info: {
+                select: {
+                  full_name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+}
   
   async getSessions(filters: GetSessionsFilters) {
     const { classId, instructorId, date, currentPage = 1 } = filters;

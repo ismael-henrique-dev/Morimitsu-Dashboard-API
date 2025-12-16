@@ -2,8 +2,8 @@ import { StudentsRepositoryInterface } from "../../repositories/students";
 import { ClassesRepositoryInterface } from "../../repositories/classes";
 
 interface EnrollStudentServiceParams {
-  studentId: string;
   classId: string;
+  studentIds: string[];
 }
 
 function calculateAge(date: Date): number {
@@ -24,52 +24,44 @@ export class EnrollStudentService {
     private classesRepo: ClassesRepositoryInterface
   ) {}
 
-  async execute({ studentId, classId }: EnrollStudentServiceParams) {
-    // 1. Verifica se o aluno existe
-    const student = await this.studentsRepo.details(studentId);
-    if (!student) {
-      throw new Error("Estudante não encontrado");
-    }
-
-    if (!student.personal_info) {
-      throw new Error("Informações pessoais do aluno estão incompletas");
-    }
-
-    // 2. Verifica se a turma existe
+  async execute({ classId, studentIds }: EnrollStudentServiceParams) {
     const classData = await this.classesRepo.details(classId);
     if (!classData) {
       throw new Error("Turma não encontrada");
     }
 
-    // 3. Verifica se o aluno já está matriculado
-    if (student.class_id === classId) {
-      throw new Error("O aluno já está matriculado nesta turma");
-    }
+    const result: Array<{
+      student_id: string;
+      full_name: string | null;
+      message: string;
+    }> = [];
 
-    // 4. Calcula idade real do aluno
-    const idadeAluno = calculateAge(new Date(student.personal_info.date_of_birth));
+    for (const studentId of studentIds) {
+      const student = await this.studentsRepo.details(studentId);
+      if (!student || !student.personal_info) continue;
 
-    // 5. Valida idade mínima
-    if (classData.min_age !== null && idadeAluno < classData.min_age) {
-      throw new Error(
-        `O aluno é muito novo para esta turma. Idade mínima: ${classData.min_age} anos`
+      if (student.class_id === classId) continue;
+
+      const idadeAluno = calculateAge(
+        new Date(student.personal_info.date_of_birth)
       );
+
+      if (
+        (classData.min_age !== null && idadeAluno < classData.min_age) ||
+        (classData.max_age !== null && idadeAluno > classData.max_age)
+      ) {
+        continue;
+      }
+
+      const enrolled = await this.studentsRepo.enroll(studentId, classId);
+
+      result.push({
+        student_id: enrolled.id,
+        full_name: enrolled.personal_info?.full_name ?? null,
+        message: "Aluno enturmado com sucesso"
+      });
     }
 
-    // 6. Valida idade máxima
-    if (classData.max_age !== null && idadeAluno > classData.max_age) {
-      throw new Error(
-        `O aluno excede a idade máxima permitida nesta turma. Idade máxima: ${classData.max_age} anos`
-      );
-    }
-
-    // 7. Matricula o aluno
-    const enrolledStudent = await this.studentsRepo.enroll(studentId, classId);
-
-    return {
-      message: "Aluno matriculado com sucesso",
-      student: enrolledStudent,
-      class: classData,
-    };
+    return result;
   }
 }

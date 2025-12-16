@@ -1,18 +1,24 @@
 import { prisma } from "../../lib";
 
-interface GraduationAnnouncement {
-  type: "graduation";
-  student_id: string;
-  student_name: string;
-  belt: string;
-  grade: number;
-  total_frequency: number;
-  required_trainings: number;
-  message: string;
+interface GraduationEligibleStudent {
+  id: string;
+  name: string;
+  graduationType: "grade" | "belt";
+  graduation: {
+    currentGraduation: {
+      belt: string;
+      grade: number;
+    };
+    newGraduation: {
+      belt?: string;
+      grade?: number;
+    };
+  };
 }
 
+
 export class GetGraduationAnnouncementsService {
-  async execute() {
+  async execute(): Promise<GraduationEligibleStudent[]> {
     const rules = await prisma.graduation_preferences.findMany();
 
     const students = await prisma.students.findMany({
@@ -21,43 +27,37 @@ export class GetGraduationAnnouncementsService {
       }
     });
 
-    const announcements: GraduationAnnouncement[] = [];
+    const result: GraduationEligibleStudent[] = [];
 
     for (const student of students) {
+      if (!student.personal_info) continue;
+
       const rule = rules.find(rule =>
         rule.belt === student.belt &&
-        rule.total_trainings <= student.total_frequency &&
-        (
-          rule.min_age === null ||
-          rule.max_age === null ||
-          student.personal_info === null
-            ? true
-            : (() => {
-                const birth = new Date(student.personal_info.date_of_birth);
-                const age =
-                  new Date().getFullYear() - birth.getFullYear();
-                return (
-                  (!rule.min_age || age >= rule.min_age) &&
-                  (!rule.max_age || age <= rule.max_age)
-                );
-              })()
-        )
+        rule.total_trainings <= student.total_frequency
       );
 
-      if (!rule || !student.personal_info) continue;
+      if (!rule) continue;
 
-      announcements.push({
-        type: "graduation",
-        student_id: student.id,
-        student_name: student.personal_info.full_name,
-        belt: student.belt,
-        grade: student.grade,
-        total_frequency: student.total_frequency,
-        required_trainings: rule.total_trainings,
-        message: `${student.personal_info.full_name} está apto para graduação`
+      // 🔹 regra simples (você pode refinar depois)
+      const isBeltGraduation = student.grade >= 4; // exemplo
+
+      result.push({
+        id: student.id,
+        name: student.personal_info.full_name,
+        graduationType: isBeltGraduation ? "belt" : "grade",
+        graduation: {
+          currentGraduation: {
+            belt: student.belt,
+            grade: student.grade
+          },
+          newGraduation: isBeltGraduation
+            ? { belt: rule.belt } // próxima faixa (ajuste se tiver campo específico)
+            : { grade: student.grade + 1 }
+        }
       });
     }
 
-    return announcements;
+    return result;
   }
 }

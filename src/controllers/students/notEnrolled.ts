@@ -9,15 +9,18 @@ export const listNotEnrolledStudentsController = async (
 ) => {
   try {
     const { classId } = req.params;
+    const { search } = req.query;
 
     const service = new ListNotEnrolledStudentsService(
       new PrismaStudentsRepository(),
       new PrismaClassesRepository()
     );
 
-    const students = await service.execute(classId);
+    const students = await service.execute(
+      classId,
+      typeof search === "string" ? search : undefined
+    );
 
-    // Retorna só id e full_name
     const simplified = students.map(s => ({
       id: s.id,
       full_name: s.personal_info?.full_name ?? null

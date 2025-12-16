@@ -3,8 +3,9 @@ import { prisma } from "../../lib";
 export class GetBirthdayAnnouncementsService {
   async execute() {
     const today = new Date();
-    const day = today.getUTCDate();
-    const month = today.getUTCMonth() + 1; // 1-12
+
+    const todayDay = today.getUTCDate();
+    const todayMonth = today.getUTCMonth(); // 0–11
 
     const students = await prisma.students.findMany({
       include: {
@@ -13,20 +14,33 @@ export class GetBirthdayAnnouncementsService {
     });
 
     return students
-      .filter(s => {
-        const birth = s.personal_info?.date_of_birth;
+      .filter(student => {
+        const birth = student.personal_info?.date_of_birth;
         if (!birth) return false;
 
-        const birthDay = birth.getUTCDate();
-        const birthMonth = birth.getUTCMonth() + 1;
-
-        return birthDay === day && birthMonth === month;
+        return (
+          birth.getUTCDate() === todayDay &&
+          birth.getUTCMonth() === todayMonth
+        );
       })
-      .map(s => ({
-        type: "birthday",
-        student_id: s.id,
-        student_name: s.personal_info!.full_name,
-        message: `🎉 ${s.personal_info!.full_name} faz aniversário hoje!`
-      }));
+      .map(student => {
+        const birth = student.personal_info!.date_of_birth;
+
+        const age =
+          today.getUTCFullYear() - birth.getUTCFullYear();
+
+        const birthday = `${String(birth.getUTCDate()).padStart(2, "0")}/${String(
+          birth.getUTCMonth() + 1
+        ).padStart(2, "0")}`;
+
+        return {
+          type: "birthday",
+          student_id: student.id,
+          student_name: student.personal_info!.full_name,
+          age,
+          birthday,
+          message: `🎉 ${student.personal_info!.full_name} faz aniversário hoje!`
+        };
+      });
   }
 }

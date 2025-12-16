@@ -8,7 +8,6 @@ interface AttendanceItem {
 interface MarkAttendanceInput {
   classId: string;
   instructorId: string;
-  session_date: string;
   attendance: AttendanceItem[];
 }
 
@@ -18,12 +17,12 @@ export class MarkAttendanceService {
   async execute({
     classId,
     instructorId,
-    session_date,
     attendance
   }: MarkAttendanceInput) {
 
-    const sessionDate = new Date(session_date);
-    sessionDate.setHours(12, 0, 0, 0);
+    // 🔒 DATA NORMALIZADA
+    const sessionDate = new Date();
+    sessionDate.setHours(0, 0, 0, 0);
 
     const session = await this.sessionsRepo.getOrCreateSessionByDate(
       classId,

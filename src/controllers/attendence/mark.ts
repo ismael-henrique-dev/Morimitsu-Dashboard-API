@@ -4,7 +4,6 @@ import { MarkAttendanceService } from "../../services/attendence/mark";
 import z from "zod";
 
 const schema = z.object({
-  session_date: z.string(),
   attendance: z.array(
     z.object({
       studentId: z.string().uuid(),
@@ -28,15 +27,13 @@ export async function markAttendanceController(
       return res.status(401).json({ message: "Usuário não autenticado" });
     }
 
-    const { session_date, attendance } = schema.parse(req.body);
+    const { attendance } = schema.parse(req.body);
 
     const service = new MarkAttendanceService();
-
     const result = await service.execute({
       classId: class_id,
       instructorId,
-      session_date,
-      attendance
+      attendance,
     });
 
     return res.status(200).json({
@@ -45,7 +42,6 @@ export async function markAttendanceController(
     });
 
   } catch (err: any) {
-    console.error(err);
     return res.status(400).json({
       message: err.message || "Erro ao marcar presença"
     });

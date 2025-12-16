@@ -17,7 +17,7 @@ router.delete('/delete/:id', authenticate, deleteStudentController)
 router.get('/', authenticate, getStudentsController)
 router.patch('/update/:id', authenticate, updateStudentsController)
 router.get('/:id', authenticate, detailsStudentsController)
-router.post('/enroll', authenticate, enrollStudentController)
+router.post('/enroll/:class_id', authenticate, enrollStudentController)
 router.get('/enrolled/:classId', authenticate, listEnrolledStudentsController);
 router.delete("/unenroll/:studentId", authenticate, unenrollStudentController);
 router.get("/not-enrolled/:classId", authenticate, listNotEnrolledStudentsController)

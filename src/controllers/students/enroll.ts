@@ -1,51 +1,45 @@
-import { Response } from 'express'
-import { AuthRequest } from '../../middlewares/auth'
-import { EnrollStudentService } from '../../services/students/enroll'
-import { PrismaStudentsRepository } from '../../repositories/students'
-import { PrismaClassesRepository } from '../../repositories/classes'
-import { z } from 'zod'
+import { Response } from "express";
+import { AuthRequest } from "../../middlewares/auth";
+import { EnrollStudentService } from "../../services/students/enroll";
+import { PrismaStudentsRepository } from "../../repositories/students";
+import { PrismaClassesRepository } from "../../repositories/classes";
+import { z } from "zod";
 
-const enrollStudentSchema = z.object({
-  studentId: z.string().uuid(),
-  classId: z.string().uuid(),
-})
+const schema = z.object({
+  studentIds: z.array(z.string().uuid())
+});
 
-export const enrollStudentController = async (req: AuthRequest, res: Response) => {
+export const enrollStudentController = async (
+  req: AuthRequest,
+  res: Response
+) => {
   try {
-    // validação (param + body)
-    const { studentId, classId } = enrollStudentSchema.parse(req.body)
+    const { class_id } = req.params;
+
+    if (!class_id) {
+      return res.status(400).json({ message: "class_id é obrigatório" });
+    }
+
+    const { studentIds } = schema.parse(req.body);
 
     const service = new EnrollStudentService(
       new PrismaStudentsRepository(),
-      new PrismaClassesRepository(),
-    )
+      new PrismaClassesRepository()
+    );
 
-    const result = await service.execute({ studentId, classId })
+    const result = await service.execute({
+      classId: class_id,
+      studentIds
+    });
 
     return res.status(200).json({
-      message: 'Aluno enturmado com sucesso!',
-      result,
-    })
+      message: "Alunos enturmados",
+      result
+    });
 
-  } catch (err) {
-    // erro de validação do Zod
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({
-        message: 'Erro de validação',
-        errors: err.issues,
-      })
-    }
-
-    // erros esperados vindos do service (ex: aluno inexistente)
-    if (err instanceof Error) {
-      return res.status(400).json({
-        message: err.message,
-      })
-    }
-
-    console.error(err)
-    return res.status(500).json({
-      message: 'Erro interno do servidor',
-    })
+  } catch (err: any) {
+    return res.status(400).json({
+      message: err.message || "Erro ao enturmar alunos"
+    });
   }
-}
+};

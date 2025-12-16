@@ -1,16 +1,38 @@
 import { prisma } from "../lib";
+import { class_sessions } from "@prisma/client";
 
 interface AttendanceItem {
   studentId: string;
   present: boolean;
 }
 
-export class PrismaSessionsRepository {
+export interface SessionRepositoryInterface {
+  getOrCreateSessionByDate(
+    classId: string,
+    instructorId: string,
+    sessionDate: Date
+  ): Promise<class_sessions>;
+
+  upsertAttendance(
+    sessionId: string,
+    attendance: AttendanceItem[]
+  ): Promise<any[]>;
+
+  getAttendanceBySession(
+    sessionId: string,
+    studentIds?: string[]
+  ): Promise<any[]>;
+}
+
+export class PrismaSessionsRepository
+  implements SessionRepositoryInterface {
+
   async getOrCreateSessionByDate(
     classId: string,
     instructorId: string,
     sessionDate: Date
-  ) {
+  ): Promise<class_sessions> {
+
     const session = await prisma.class_sessions.findFirst({
       where: {
         class_id: classId,
@@ -30,7 +52,10 @@ export class PrismaSessionsRepository {
     });
   }
 
-  async upsertAttendance(sessionId: string, attendance: AttendanceItem[]) {
+  async upsertAttendance(
+    sessionId: string,
+    attendance: AttendanceItem[]
+  ) {
     return Promise.all(
       attendance.map(item =>
         prisma.student_attendance.upsert({
@@ -53,7 +78,10 @@ export class PrismaSessionsRepository {
     );
   }
 
-  async getAttendanceBySession(sessionId: string, studentIds?: string[]) {
+  async getAttendanceBySession(
+    sessionId: string,
+    studentIds?: string[]
+  ) {
     return prisma.student_attendance.findMany({
       where: {
         session_id: sessionId,

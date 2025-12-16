@@ -7,14 +7,13 @@ export class ListEnrolledStudentsService {
     private classesRepo: ClassesRepositoryInterface
   ) {}
 
-  async execute(classId?: string) {
-    if (classId) {
-      const classData = await this.classesRepo.details(classId);
-      if (!classData) {
-        throw new Error("Turma não encontrada");
-      }
+  async execute(classId: string, search?: string) {
+    const classData = await this.classesRepo.details(classId);
+
+    if (!classData) {
+      throw new Error("Turma não encontrada");
     }
 
-    return this.studentsRepo.listEnrolled(classId);
+    return this.studentsRepo.listEnrolled(classId, search);
   }
 }

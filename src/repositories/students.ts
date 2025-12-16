@@ -37,8 +37,8 @@ export interface StudentsRepositoryInterface {
     findByEmail(email: string): Promise<StudentWithPersonalInfo | null>
     details(id: string): Promise<StudentWithPersonalInfo | null>
     enroll(studentId: string, classId: string): Promise<StudentWithPersonalInfo>
-    listEnrolled(classId?: string): Promise<StudentWithPersonalInfo[]>
-    listNotEnrolledEligibleByClass(minAge?: number | null, maxAge?: number | null): Promise<StudentWithPersonalInfo[]>
+    listEnrolled(classId: string, search?: string): Promise<StudentWithPersonalInfo[]>
+    listNotEnrolledEligibleByClass( minAge?: number | null, maxAge?: number | null, search?: string): Promise<StudentWithPersonalInfo[]>
     unenroll(studentId: string): Promise<StudentWithPersonalInfo>
     
 }
@@ -174,24 +174,34 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
     data: {
         class: { connect: { id: classId } }
     },
-    include: { personal_info: true }
+    select: { personal_info: {
+      select: { 
+        id: true,
+        full_name: true}
+    } }
 }) as StudentWithPersonalInfo;
   }
 
-  async listEnrolled(classId?: string): Promise<StudentWithPersonalInfo[]> {
-  const whereClause = classId
-    ? { class_id: classId }       // filtra só a turma específica
-    : { class_id: { not: null } } // todos os alunos enturmados
-
+  async listEnrolled(classId: string, search?: string) {
   return prisma.students.findMany({
-    where: whereClause,
+    where: {
+      class_id: classId,
+      ...(search && {
+        personal_info: {
+          is: {
+            full_name: {
+              contains: search,
+              mode: "insensitive"
+            }
+          }
+        }
+      })
+    },
     include: {
-      personal_info: true,  // necessário para pegar o full_name
-      class: true
+      personal_info: true
     }
-  }) as Promise<StudentWithPersonalInfo[]>;
+  });
 }
-
 
 async unenroll(studentId: string) {
   return prisma.students.update({
@@ -205,8 +215,10 @@ async unenroll(studentId: string) {
 
   async listNotEnrolledEligibleByClass(
   minAge?: number | null,
-  maxAge?: number | null
+  maxAge?: number | null,
+  search?: string
 ): Promise<StudentWithPersonalInfo[]> {
+
   const today = new Date();
 
   return prisma.students.findMany({
@@ -214,6 +226,12 @@ async unenroll(studentId: string) {
       class_id: null,
       personal_info: {
         is: {
+          ...(search && {
+            full_name: {
+              contains: search,
+              mode: "insensitive"
+            }
+          }),
           date_of_birth: {
             ...(minAge !== null && minAge !== undefined && {
               lte: new Date(
