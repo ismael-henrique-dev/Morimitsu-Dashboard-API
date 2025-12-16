@@ -30,34 +30,47 @@ export type SearchParam = {
 
 
 export interface StudentsRepositoryInterface {
-    create(data: Prisma.studentsCreateInput): Promise<StudentWithPersonalInfo>
-    delete(studentId: string): Promise<void>
-    get(params: SearchParam): Promise<StudentWithPersonalInfo[]>
-    update(studentId: string, data: UpdateStudentPayloadFromController): Promise<StudentWithPersonalInfo>
-    findByEmail(email: string): Promise<StudentWithPersonalInfo | null>
-    details(id: string): Promise<StudentWithPersonalInfo | null>
-    enroll(studentId: string, classId: string): Promise<StudentWithPersonalInfo>
-    listEnrolled(classId: string, search?: string): Promise<StudentWithPersonalInfo[]>
-    listNotEnrolledEligibleByClass( minAge?: number | null, maxAge?: number | null, search?: string): Promise<StudentWithPersonalInfo[]>
-    unenroll(studentId: string): Promise<StudentWithPersonalInfo>
-    
+  create(data: Prisma.studentsCreateInput): Promise<StudentWithPersonalInfo>
+  findByEmail(email: string): Promise<StudentWithPersonalInfo | null>
+  findByCpf(cpf: string): Promise<StudentWithPersonalInfo | null>
+  details(id: string): Promise<StudentWithPersonalInfo | null>
+  get(params: SearchParam): Promise<StudentWithPersonalInfo[]>
+  update(studentId: string, data: UpdateStudentPayloadFromController): Promise<StudentWithPersonalInfo>
+  delete(studentId: string): Promise<void>
+  enroll(studentId: string, classId: string): Promise<StudentWithPersonalInfo>
+  unenroll(studentId: string): Promise<StudentWithPersonalInfo>
+  listEnrolled(classId: string, search?: string): Promise<StudentWithPersonalInfo[]>
+  listNotEnrolledEligibleByClass(minAge?: number | null, maxAge?: number | null, search?: string): Promise<StudentWithPersonalInfo[]>
 }
+
 
 export class PrismaStudentsRepository implements StudentsRepositoryInterface {
 
-  async create(data: Prisma.studentsCreateInput) {
-    return prisma.students.create({
-      data,
-      include: { personal_info: true, class: true },
-    })
-  }
+  async create(data: Prisma.studentsCreateInput): Promise<StudentWithPersonalInfo> {
+  return prisma.students.create({
+    data,
+    include: { personal_info: true }
+  })
+}
 
-  async findByEmail(email: string) {
-    return prisma.students.findUnique({
-      where: { email },
-      include: { personal_info: true, class: true },
-    })
-  }
+  async findByEmail(email: string): Promise<StudentWithPersonalInfo | null> {
+  return prisma.students.findUnique({
+    where: { email },
+    include: { personal_info: true }
+  })
+}
+
+  async findByCpf(cpf: string): Promise<StudentWithPersonalInfo | null> {
+  return prisma.students.findFirst({
+    where: {
+      personal_info: {
+        cpf
+      }
+    },
+    include: { personal_info: true }
+  })
+}
+
 
   private getAge(birthDate: Date): number {
     const today = new Date();
@@ -157,55 +170,59 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
 }
 
 
-  async update(studentId: string, data: UpdateStudentPayloadFromController): Promise<StudentWithPersonalInfo> {
+  async update(
+  studentId: string,
+  data: UpdateStudentPayloadFromController
+) {
+  const finalData: Prisma.studentsUpdateInput = {}
 
-  const { personal_info, ...studentData } = data;
+  // 🔹 Campos simples
+  if (data.email !== undefined) finalData.email = data.email
+  if (data.grade !== undefined) finalData.grade = data.grade
+  if (data.belt !== undefined) finalData.belt = data.belt
+  if (data.ifce_enrollment !== undefined)
+    finalData.ifce_enrollment = data.ifce_enrollment
 
-  // Declara o tipo CORRETO do Prisma
-  let finalUpdateData: Prisma.studentsUpdateInput = {};
+  // 🔹 Relacionamento com turma
+  if (data.class_id !== undefined) {
+    finalData.class =
+      data.class_id === null
+        ? { disconnect: true }
+        : { connect: { id: data.class_id } }
+  }
 
-  // 1. Campos raiz do aluno
-  for (const key in studentData) {
-    const value = (studentData as any)[key];
-    if (value === undefined) continue;
+  // 🔹 Personal info
+  if (data.personal_info) {
+    const pi = data.personal_info
 
-    if (value === null) {
-      (finalUpdateData as any)[key] = { set: null };
-    } else {
-      (finalUpdateData as any)[key] = value;
+    finalData.personal_info = {
+      upsert: {
+        update: {
+          ...(pi.full_name !== undefined && { full_name: pi.full_name }),
+          ...(pi.student_phone !== undefined && { student_phone: pi.student_phone }),
+          ...(pi.address !== undefined && { address: pi.address }),
+          ...(pi.date_of_birth !== undefined && { date_of_birth: pi.date_of_birth }),
+          ...(pi.parent_name !== undefined && { parent_name: pi.parent_name }),
+          ...(pi.parent_phone !== undefined && { parent_phone: pi.parent_phone }),
+        },
+        create: {
+          full_name: pi.full_name ?? '',
+          student_phone: pi.student_phone ?? '',
+          address: pi.address ?? '',
+          date_of_birth: pi.date_of_birth ?? new Date(),
+          parent_name: pi.parent_name ?? null,
+          parent_phone: pi.parent_phone ?? null,
+          cpf: '',
+        },
+      },
     }
   }
 
-  // 2. Atualização de personal_info
-  if (personal_info) {
-    const personalInfoUpdate: Prisma.personal_infoUpdateInput = {};
-
-    for (const key in personal_info) {
-      const val = (personal_info as any)[key];
-      if (val !== undefined) {
-        (personalInfoUpdate as any)[key] = val ?? null;
-      }
-    }
-
-    if (Object.keys(personalInfoUpdate).length > 0) {
-      finalUpdateData.personal_info = { update: personalInfoUpdate };
-    }
-  }
-
-  // 3. Relacionamento da turma
-  const classIdValue = (studentData as any).class_id;
-  if (classIdValue !== undefined) {
-    finalUpdateData.class = classIdValue
-      ? { connect: { id: classIdValue } }
-      : { disconnect: true };
-  }
-
-  // 4. EXECUÇÃO DO UPDATE
-  return await prisma.students.update({
+  return prisma.students.update({
     where: { id: studentId },
-    data: finalUpdateData,
+    data: finalData,
     include: { personal_info: true },
-  });
+  })
 }
 
   async enroll(studentId: string, classId: string) {

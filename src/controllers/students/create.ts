@@ -4,6 +4,7 @@ import { CPFConflictError, CreateStudentsService } from "../../services/students
 import { PrismaStudentsRepository } from "../../repositories/students"
 import { number, string, z } from "zod"
 import { Belt } from "@prisma/client"
+import { normalizeDate } from "../../utils/normalizeDate"
 import { EmailConflictError } from "../../services/students/create"
 
 // A função calculateAge não é mais usada para validação condicional, mas é mantida por segurança.
@@ -51,106 +52,80 @@ const enrollmentSchema = z
     
 
 const createStudentSchema = z.object({
-    cpf: z.string().min(11).max(11).refine((cpf) => IsValidCpf(cpf), {
-        message: "CPF inválido",
-    }),
-    full_name: z.string().min(2, "Nome inválido"),
-    email: z.string().email({ message: "Email inválido" }),
-    parent_name: z.string().min(2, "Nome do responsável inválido").optional().nullable(),
-    parent_phone: phoneSchema.optional().nullable(),
-    student_phone: phoneSchema,
-    address: z.string().min(5, "Endereço inválido"),
-    date_of_birth: z.string().transform((v) => new Date(v)),
-    grade: z.number().int("O grau deve ser um número inteiro"),
-    belt: z.nativeEnum(Belt).optional(),
-    class_id: z.string().uuid().optional(),
-    ifce_enrollment: enrollmentSchema,
+  cpf: z.string().length(11),
+  full_name: z.string().min(2),
+  email: z.string().email(),
+  parent_name: z.string().optional().nullable(),
+  parent_phone: phoneSchema.optional().nullable(),
+  student_phone: phoneSchema,
+  address: z.string().min(5),
+  date_of_birth: z.string(), // string ainda
+  grade: z.number().int(),
+  belt: z.nativeEnum(Belt).optional(),
+  class_id: z.string().uuid().optional(),
+  ifce_enrollment: enrollmentSchema
 })
+
 .superRefine((data, ctx) => {
-  const age = calculateAge(data.date_of_birth)
+  const date = normalizeDate(data.date_of_birth)
+
+  if (isNaN(date.getTime())) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Data de nascimento inválida.",
+      path: ['date_of_birth'],
+    })
+    return
+  }
+
+  const age = calculateAge(date)
 
   if (age < 4) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Aluno deve ter pelo menos 4 anos.",
-      path: ['date_of_birth']
-    })
-  }
-
-  if (isNaN(data.date_of_birth.getTime())) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Data de nascimento inválida.",
-      path: ['date_of_birth']
+      path: ['date_of_birth'],
     })
   }
 })
 
+
 export const createStudentController = async (req: AuthRequest, res: Response) => {
-    try {
-        const body = createStudentSchema.parse(req.body)
+  try {
+    const body = createStudentSchema.parse(req.body)
 
-        const {
-            cpf, full_name, email, parent_name, parent_phone, student_phone, address, 
-            date_of_birth, grade, belt, class_id, ifce_enrollment,
-        } = body
+    const service = new CreateStudentsService(
+      new PrismaStudentsRepository()
+    )
 
-        const service = new CreateStudentsService(new PrismaStudentsRepository())
+    const student = await service.handle({
+      ...body,
+      date_of_birth: normalizeDate(body.date_of_birth),
+      belt: body.belt ?? Belt.white
+    })
 
-        const student = await service.handle({
-            cpf, full_name, email, parent_name, parent_phone, student_phone, address, 
-            date_of_birth, grade, 
-            belt: belt ?? Belt.white,
-            class_id,
-            ifce_enrollment: ifce_enrollment,
-        })
+    return res.status(201).json({
+      message: 'Aluno criado com sucesso!',
+      student
+    })
 
-        // Formatação para envio seguro ao front
-        const formattedStudent = {
-            id: student.id,
-            email: student.email,
-            grade: student.grade,
-            belt: student.belt,
-            class_id: student.class_id,
-            ifce_enrollment: student.ifce_enrollment,
-            personal_info: student.personal_info
-                ? {
-                    cpf: student.personal_info.cpf,
-                    full_name: student.personal_info.full_name,
-                    parent_name: student.personal_info.parent_name,
-                    parent_phone: student.personal_info.parent_phone,
-                    student_phone: student.personal_info.student_phone,
-                    address: student.personal_info.address,
-                    date_of_birth: student.personal_info.date_of_birth
-                        ? new Date(student.personal_info.date_of_birth).toLocaleDateString("pt-BR")
-                        : null,
-                }
-                : null,
-        }
-
-        return res.status(201).json({
-            message: "Aluno criado com sucesso!",
-            student: formattedStudent,
-        })
-    } catch (err) {
-        if (err instanceof z.ZodError) {
-            return res.status(400).json({
-                message: "Erro de validação",
-                errors: err.issues.map((e) => e.message),
-            })
-        }
-        if (err instanceof EmailConflictError) {
-            return res.status(409).json({
-                message: "Email inválido", 
-            });
-        }
-        if (err instanceof CPFConflictError) {
-            return res.status(409).json({
-                message: "CPF inválido",
-            });
-        }
-
-        console.error(err)
-        return res.status(500).json({ message: "Erro interno ao criar aluno" })
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({
+        message: 'Erro de validação',
+        errors: err.issues.map(e => e.message)
+      })
     }
+
+    if (err instanceof EmailConflictError || err instanceof CPFConflictError) {
+      return res.status(409).json({
+        message: err.message
+      })
+    }
+
+    console.error(err)
+    return res.status(500).json({
+      message: 'Erro interno ao criar aluno'
+    })
+  }
 }

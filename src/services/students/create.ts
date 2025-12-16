@@ -1,82 +1,97 @@
-import { Belt, students, Prisma } from '@prisma/client'
+import { Belt, Prisma } from '@prisma/client'
 import { StudentsRepositoryInterface } from '../../repositories/students'
 
-
 export class EmailConflictError extends Error {
-    constructor(email: string) {
-        super(`O email "${email}" já está cadastrado.`);
-        this.name = 'EmailConflictError';
-    }
+  constructor(email: string) {
+    super(`O email já está cadastrado.`)
+    this.name = 'EmailConflictError'
+  }
 }
 
 export class CPFConflictError extends Error {
-    constructor(cpf: string = "11") {
-        super(`O CPF é inválido "${cpf}".`);
-        this.name = 'CPFConflictError';
-    }
-}
-interface CreateStudentRequest {
-  cpf: string
-  full_name: string
-  email: string
-  parent_name: string | null | undefined 
-  parent_phone: string | null | undefined
-  student_phone: string
-  address: string
-  date_of_birth: Date
-  grade: number
-  belt: Belt
-  class_id?: string | null
-  ifce_enrollment?: string| null
+  constructor(cpf: string) {
+    super(`O CPF já está cadastrado.`)
+    this.name = 'CPFConflictError'
+  }
 }
 
-type CreateStudentRepositoryPayload = Prisma.studentsCreateInput
+interface CreateStudentRequest {
+  cpf: string
+  full_name: string
+  email: string
+  parent_name?: string | null
+  parent_phone?: string | null
+  student_phone: string
+  address: string
+  date_of_birth: Date
+  grade: number
+  belt: Belt
+  class_id?: string | null
+  ifce_enrollment?: string | null // ✅ opcional
+}
+
+
 
 export class CreateStudentsService {
-  constructor(private studentRepository: StudentsRepositoryInterface) {}
+  constructor(private studentsRepository: StudentsRepositoryInterface) {}
 
-  async handle({ cpf, full_name, email, parent_name, parent_phone, student_phone, address,  date_of_birth, grade, belt, class_id, ifce_enrollment,
-  }: CreateStudentRequest) {
-    
-    const existingStudent = await this.studentRepository.findByEmail(email);
+  async handle({
+    cpf,
+    full_name,
+    email,
+    parent_name,
+    parent_phone,
+    student_phone,
+    address,
+    date_of_birth,
+    grade,
+    belt,
+    class_id,
+    ifce_enrollment,
+  }: CreateStudentRequest) {
 
-        if (existingStudent) {
-            throw new EmailConflictError(email); // Lança o erro de negócio
-        }
-
-
-    const personalInfoCreate: any = {
-        cpf,
-        full_name,
-        date_of_birth,
-        student_phone,
-        address,
-    };
-
-    if (parent_name != null) {
-        personalInfoCreate.parent_name = parent_name;
-    }
-    if (parent_phone != null) {
-        personalInfoCreate.parent_phone = parent_phone;
+    // 1️⃣ Email único
+    const emailExists = await this.studentsRepository.findByEmail(email)
+    if (emailExists) {
+      throw new EmailConflictError(email)
     }
 
-    const data: any = {
-        email,
-        grade,
-        belt,
-        ifce_enrollment,
-        personal_info: {
-            create: personalInfoCreate,
-        },
-    };
+    // 2️⃣ CPF único
+    const cpfExists = await this.studentsRepository.findByCpf(cpf)
+    if (cpfExists) {
+      throw new CPFConflictError(cpf)
+    }
+
+    // 3️⃣ Personal info
+    const personalInfoCreate: Prisma.personal_infoCreateWithoutStudentInput = {
+      cpf,
+      full_name,
+      date_of_birth,
+      student_phone,
+      address,
+      parent_name: parent_name ?? null,
+      parent_phone: parent_phone ?? null,
+    }
+
+    // 4️⃣ Student data
+    const studentData: Prisma.studentsCreateInput = {
+      email,
+      grade,
+      belt,
+      personal_info: {
+        create: personalInfoCreate,
+      },
+    }
+
+    // 👇 só adiciona se existir
+    if (ifce_enrollment != null) {
+      studentData.ifce_enrollment = ifce_enrollment
+    }
 
     if (class_id != null) {
-        // attach the relation by id instead of passing unknown scalar 'class_id'
-        data.class = { connect: { id: class_id } };
+      studentData.class = { connect: { id: class_id } }
     }
 
-    const student = await this.studentRepository.create(data)
-
-    return student
-  }
+    return this.studentsRepository.create(studentData)
+  }
 }

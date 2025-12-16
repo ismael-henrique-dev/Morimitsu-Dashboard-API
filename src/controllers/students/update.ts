@@ -4,90 +4,109 @@ import { UpdateStudentService } from '../../services/students/update'
 import { PrismaStudentsRepository } from '../../repositories/students'
 import { z } from 'zod'
 import { Belt } from '@prisma/client'
+import { normalizeDate } from '../../utils/normalizeDate'
+import { EmailConflictError } from '../../services/students/errors'
 
 const updateStudentSchema = z.object({
-    email: z.string().email('Email inválido').optional(),
-    id: z.string().uuid({ message: 'ID inválido' }),
-    grade: z.number().int('A série deve ser um número inteiro').optional(),
-    belt: z.nativeEnum(Belt).optional(),
-    personal_info: z.object({
-        full_name: z.string().min(2, 'Nome inválido').optional(),
-        parent_name: z.string().min(2, 'Nome do responsável inválido').optional().nullable(),
-        parent_phone: z.string().min(8, { message: "Telefone do responsável inválido" }).optional().nullable(),
-        student_phone: z.string().min(8, { message: "Telefone do aluno inválido" }).optional(),
-        address: z.string().min(5, 'Endereço inválido').optional(),
-        date_of_birth: z.date().optional(),
-    }).optional(),
+  email: z.string().email('Email inválido').optional(),
+  id: z.string().uuid({ message: 'ID inválido' }),
+  grade: z.number().int('A série deve ser um número inteiro').optional(),
+  belt: z.nativeEnum(Belt).optional(),
+  current_frequency: z.number().int().optional(),
+  total_frequency: z.number().int().optional(),
+  personal_info: z.object({
+    full_name: z.string().min(2, 'Nome inválido').optional(),
+    parent_name: z.string().min(2, 'Nome do responsável inválido').optional().nullable(),
+    parent_phone: z.string().min(8, { message: 'Telefone do responsável inválido' }).optional().nullable(),
+    student_phone: z.string().min(8, { message: 'Telefone do aluno inválido' }).optional(),
+    address: z.string().min(5, 'Endereço inválido').optional(),
+    date_of_birth: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida (YYYY-MM-DD)')
+      .optional(),
+  }).optional(),
 })
 
+
 export const updateStudentsController = async (req: AuthRequest, res: Response) => {
-    try {
-        const parsedData = updateStudentSchema.parse({
-            id: req.params.id,
-            ...req.body,
-        })
+  try {
+    const parsedData = updateStudentSchema.parse({
+      id: req.params.id,
+      ...req.body,
+    })
 
-        const service = new UpdateStudentService(new PrismaStudentsRepository())
+    const service = new UpdateStudentService(
+      new PrismaStudentsRepository()
+    )
 
-        const updatePayload: any = {}
-        
-        if (parsedData.grade !== undefined) updatePayload.grade = parsedData.grade
-        if (parsedData.belt !== undefined) updatePayload.belt = parsedData.belt
-        if (parsedData.email !== undefined) updatePayload.email = parsedData.email
-        
-        // Esta linha envia o objeto aninhado que o Repositório espera:
-        if (parsedData.personal_info) {
-            updatePayload.personal_info = parsedData.personal_info
-        }
-        
-        const _response = await service.update(parsedData.id, updatePayload)
+    const updatePayload: any = {}
 
-        const { 
-            ifce_enrollment, 
-            class_id,               // Chave estrangeira interna
-            current_frequency,      // Campos de controle interno
-            total_frequency,        // Campos de controle interno
-            ...studentPublicData    // O resto dos dados (públicos)
-        } = _response;
+    if (parsedData.grade !== undefined)
+      updatePayload.grade = parsedData.grade
 
-        // 2. Opcional: Re-formatar os dados para garantir que a saída final seja limpa,
-        // especialmente a data de nascimento, se necessário.
-        const personalInfo = studentPublicData.personal_info || {};
-        let dateOfBirthFormatted = personalInfo.date_of_birth
-            ? new Date(personalInfo.date_of_birth).toLocaleDateString('pt-BR')
-            : null;
+    if (parsedData.belt !== undefined)
+      updatePayload.belt = parsedData.belt
 
-        // 3. Montar o objeto de resposta final
-        const formattedResponse = {
-            // Campos raiz (restantes de studentPublicData)
-            id: studentPublicData.id,
-            email: studentPublicData.email,
-            grade: studentPublicData.grade,
-            belt: studentPublicData.belt,
-            
-            // Campos aninhados (personal_info)
-            personal_info: {
-                full_name: personalInfo.full_name || null,
-                cpf: personalInfo.cpf || null,
-                date_of_birth: dateOfBirthFormatted, 
-                student_phone: personalInfo.student_phone || null,
-                parent_phone: personalInfo.parent_phone || null,
-                parent_name: personalInfo.parent_name || null,
-                address: personalInfo.address || null,
-            }
-        };
-        
-        // 4. Retorno final com o objeto filtrado
-        return res.status(200).json({
-             message: 'Aluno atualizado com sucesso!',
-             result: formattedResponse, // Retorna apenas o objeto sem ifce_enrollment
-        })
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            return res.status(400).json({ message: 'Dados inválidos', issues: error.issues })
-        }
+    if (parsedData.email !== undefined)
+      updatePayload.email = parsedData.email
 
-        console.error(error)
-        return res.status(500).json({ message: 'Erro interno do servidor' })
+    if (parsedData.current_frequency !== undefined)
+      updatePayload.current_frequency = parsedData.current_frequency
+
+    if (parsedData.total_frequency !== undefined)
+      updatePayload.total_frequency = parsedData.total_frequency
+
+    if (parsedData.personal_info) {
+      updatePayload.personal_info = {
+        ...parsedData.personal_info,
+        ...(parsedData.personal_info.date_of_birth && {
+          date_of_birth: normalizeDate(
+            parsedData.personal_info.date_of_birth
+          ),
+        }),
+      }
     }
+
+    const student = await service.update(parsedData.id, updatePayload)
+
+    return res.status(200).json({
+      message: 'Aluno atualizado com sucesso!',
+      result: {
+        id: student.id,
+        email: student.email,
+        grade: student.grade,
+        belt: student.belt,
+        current_frequency: student.current_frequency,
+        total_frequency: student.total_frequency,
+        personal_info: student.personal_info
+          ? {
+              full_name: student.personal_info.full_name,
+              cpf: student.personal_info.cpf,
+              date_of_birth: student.personal_info.date_of_birth
+                ? new Date(student.personal_info.date_of_birth)
+                    .toLocaleDateString('pt-BR')
+                : null,
+              student_phone: student.personal_info.student_phone,
+              parent_phone: student.personal_info.parent_phone,
+              parent_name: student.personal_info.parent_name,
+              address: student.personal_info.address,
+            }
+          : null,
+      },
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        message: 'Dados inválidos',
+        issues: error.issues,
+      })
+    }
+
+    if (error instanceof EmailConflictError) {
+      return res.status(409).json({ message: error.message })
+    }
+
+    console.error(error)
+    return res.status(500).json({ message: 'Erro interno do servidor' })
+  }
 }

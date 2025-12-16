@@ -1,11 +1,23 @@
-import { students, Prisma } from '@prisma/client'
-import { StudentsRepositoryInterface, UpdateStudentPayloadFromController } from '../../repositories/students' 
+import { StudentsRepositoryInterface } from '../../repositories/students'
+import { UpdateStudentPayloadFromController } from '../../repositories/students'
+import { EmailConflictError } from '../students/errors'
 
 export class UpdateStudentService {
-    constructor(private studentsRepository: StudentsRepositoryInterface) {}
+  constructor(private studentsRepo: StudentsRepositoryInterface) {}
 
-    // 🚨 Usa o novo tipo aninhado
-    async update(studentId: string, data: UpdateStudentPayloadFromController) {
-        return await this.studentsRepository.update(studentId, data)
+  async update(
+    studentId: string,
+    data: UpdateStudentPayloadFromController
+  ) {
+    // 🔒 valida email duplicado
+    if (data.email) {
+      const existing = await this.studentsRepo.findByEmail(data.email)
+
+      if (existing && existing.id !== studentId) {
+        throw new EmailConflictError(data.email)
+      }
     }
+
+    return this.studentsRepo.update(studentId, data)
+  }
 }
