@@ -1,6 +1,12 @@
 import { prisma } from "../lib"
 import bcrypt from "bcrypt";
 
+interface UpdateUserInput {
+  id: string;
+  username?: string;
+  email?: string;
+}
+
 export interface UsersRepository {
   findInstructors(): Promise<any[]>
   promoteStudentToInstructor(studentId: string): Promise<any>
@@ -53,5 +59,11 @@ export class PrismaUsersRepository implements UsersRepository {
 
     return user;
   }
-}
 
+  async updateUser(id: string, data: Partial<{ username: string; email: string }>) {
+    return prisma.users.update({
+      where: { id },
+      data,
+    });
+  }
+}
