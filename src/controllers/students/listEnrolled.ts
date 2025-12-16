@@ -25,9 +25,13 @@ export const listEnrolledStudentsController = async (
 
     const students = await service.execute(classId, search);
 
-    const simplified = students.map(s => ({
-      full_name: s.personal_info?.full_name ?? null
-    }));
+    // Mapeia apenas id e full_name
+    const simplified = students
+      .filter(s => s.personal_info) // garante que personal_info existe
+      .map(s => ({
+        id: s.id,
+        full_name: s.personal_info!.full_name
+      }));
 
     return res.json(simplified);
 
