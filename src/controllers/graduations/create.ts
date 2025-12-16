@@ -33,6 +33,7 @@ export const createGraduationController = async (req: AuthRequest, res: Response
       grade: result.grade,
     });
   } catch (err: any) {
-    return res.status(500).json({ message: "Erro interno no servidor" });
+    console.error("Erro ao criar graduação:", err); // log detalhado do erro
+    return res.status(400).json({ message: err.message ?? "Erro interno no servidor" });
   }
 };
