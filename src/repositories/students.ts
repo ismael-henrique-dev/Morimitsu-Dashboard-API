@@ -59,11 +59,51 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
     })
   }
 
+  private getAge(birthDate: Date): number {
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  }
+
   async details(id: string) {
-    return prisma.students.findUnique({
+    // 1️⃣ Busca aluno com personal_info e classe
+    const student = await prisma.students.findUnique({
       where: { id },
       include: { personal_info: true, class: true },
-    })
+    });
+
+    if (!student || !student.personal_info) return null;
+
+    // 2️⃣ Calcula idade
+    const age = this.getAge(student.personal_info.date_of_birth);
+
+    // 3️⃣ Define categoria com base na idade
+    let category: 'kids' | 'infanto_juvenil' | 'juvenil_adulto';
+    if (age < 12) category = 'kids';
+    else if (age <= 16) category = 'infanto_juvenil';
+    else category = 'juvenil_adulto';
+
+    // 4️⃣ Busca graduation_preferences pela categoria
+    const prefs = await prisma.graduation_preferences.findMany({
+      where: { category },
+    });
+
+    // 5️⃣ Filtra pelo belt (exceto kids que pode pegar qualquer)
+    let pref;
+    if (category === 'kids') {
+      pref = prefs[0]; // pega qualquer preferência disponível
+    } else {
+      pref = prefs.find(p => p.belt === student.belt);
+    }
+
+    return {
+      ...student,
+      total_trainings: pref?.total_trainings ?? null,
+    };
   }
 
   async delete(studentId: string): Promise<void> {
