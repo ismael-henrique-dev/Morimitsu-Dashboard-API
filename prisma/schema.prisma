@@ -36,61 +36,64 @@ enum Belt {
   brown
   black
   red
-  coral 
+  coral
   red_black
 }
+
 model users {
-  id        String   @id @default(uuid())
-  username  String   
-  email     String   @unique
-  password  String
-  role      Role
-  classes   classes[]       @relation("UserClasses")
-  sessions  class_sessions[] @relation("UserSessions")
+  id       String           @id @default(uuid())
+  username String
+  email    String           @unique
+  password String
+  role     Role
+  classes  classes[]        @relation("UserClasses")
+  sessions class_sessions[] @relation("UserSessions")
+
+  password_resets password_reset[]
 }
 
 model students {
-  id                String   @id @default(uuid())
+  id                String  @id @default(uuid())
   alias             String?
   belt              Belt
   grade             Int
-  current_frequency Int      @default(0)
-  total_frequency   Int      @default(0)
+  current_frequency Int     @default(0)
+  total_frequency   Int     @default(0)
   email             String  @unique
   class_id          String?
   ifce_enrollment   String?
-  
+
   // Relationaments
-  class             classes?          @relation(fields: [class_id], references: [id])
-  personal_info     personal_info?
-  graduations       graduations[]
-  announcements     announcements[]
-  attendances       student_attendance[]
+  class         classes?             @relation(fields: [class_id], references: [id])
+  personal_info personal_info?
+  graduations   graduations[]
+  announcements announcements[]
+  attendances   student_attendance[]
 }
 
 model personal_info {
-  id           String   @id @default(uuid())
-  student_id   String   @unique
-  cpf          String  @unique
-  parent_name  String?
-  parent_phone String?
+  id            String   @id @default(uuid())
+  student_id    String   @unique
+  cpf           String   @unique
+  parent_name   String?
+  parent_phone  String?
   student_phone String
-  address      String
-  full_name    String
+  address       String
+  full_name     String
   date_of_birth DateTime
 
-  student      students @relation(fields: [student_id], references: [id])
+  student students @relation(fields: [student_id], references: [id])
 }
 
 model announcements {
-  id         String            @id @default(uuid())
-  student_id String
-  message    String
-  type       AnnouncementType
+  id             String           @id @default(uuid())
+  student_id     String
+  message        String
+  type           AnnouncementType
   reference_date DateTime
-  expires_at  DateTime
+  expires_at     DateTime
 
-  student    students @relation(fields: [student_id], references: [id])
+  student students @relation(fields: [student_id], references: [id])
 }
 
 model graduations {
@@ -100,20 +103,20 @@ model graduations {
   belt            Belt
   grade           Int
 
-  student         students @relation(fields: [student_id], references: [id])
+  student students @relation(fields: [student_id], references: [id])
 }
 
 model classes {
-  id          String   @id @default(uuid())
-  name        String
-  min_age        Int    @default(4) // idade mínima opcional
-  max_age        Int?     // idade máxima opcional
-  schedule    Json
+  id            String @id @default(uuid())
+  name          String
+  min_age       Int    @default(4) // idade mínima opcional
+  max_age       Int? // idade máxima opcional
+  schedule      Json
   instructor_id String
 
-  instructor  users      @relation("UserClasses", fields: [instructor_id], references: [id])
-  sessions    class_sessions[]
-  students    students[]
+  instructor users            @relation("UserClasses", fields: [instructor_id], references: [id])
+  sessions   class_sessions[]
+  students   students[]
 }
 
 model class_sessions {
@@ -122,19 +125,19 @@ model class_sessions {
   instructor_id String
   session_date  DateTime
 
-  class         classes   @relation(fields: [class_id], references: [id])
-  instructor    users     @relation("UserSessions", fields: [instructor_id], references: [id])
-  attendances   student_attendance[]
+  class       classes              @relation(fields: [class_id], references: [id])
+  instructor  users                @relation("UserSessions", fields: [instructor_id], references: [id])
+  attendances student_attendance[]
 }
 
 model student_attendance {
-  id          String   @id @default(uuid())
-  present     Boolean  @default(false)
-  student_id  String
-  session_id  String
+  id         String  @id @default(uuid())
+  present    Boolean @default(false)
+  student_id String
+  session_id String
 
-  student     students       @relation(fields: [student_id], references: [id])
-  session     class_sessions @relation(fields: [session_id], references: [id])
+  student students       @relation(fields: [student_id], references: [id])
+  session class_sessions @relation(fields: [session_id], references: [id])
 
   @@unique([student_id, session_id], name: "student_id_session_id")
 }
@@ -146,10 +149,19 @@ enum GraduationCategory {
 }
 
 model graduation_preferences {
-  id           String             @id @default(uuid())
-  category     GraduationCategory
-  belt         Belt
-  min_age      Int?
-  max_age      Int?
+  id              String             @id @default(uuid())
+  category        GraduationCategory
+  belt            Belt
+  min_age         Int?
+  max_age         Int?
   total_trainings Int
+}
+
+model password_reset {
+  id         String   @id @default(uuid())
+  user_id    String
+  token      String   @unique
+  expires_at DateTime
+
+  user users @relation(fields: [user_id], references: [id])
 }

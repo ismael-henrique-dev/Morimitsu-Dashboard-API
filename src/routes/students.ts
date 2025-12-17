@@ -9,6 +9,7 @@ import { enrollStudentController } from '../controllers/students/enroll'
 import { listEnrolledStudentsController } from '../controllers/students/listEnrolled'
 import { unenrollStudentController } from '../controllers/students/unenroll'
 import { listNotEnrolledStudentsController } from '../controllers/students/notEnrolled'
+import { promoteStudentController } from '../controllers/students/promote'
 
 const router = Router()
 
@@ -21,5 +22,6 @@ router.post('/enroll/:class_id', authenticate, enrollStudentController)
 router.get('/enrolled/:classId', authenticate, listEnrolledStudentsController);
 router.delete("/unenroll/:studentId", authenticate, unenrollStudentController);
 router.get("/not-enrolled/:classId", authenticate, listNotEnrolledStudentsController)
+router.post('/promote/:studentId', authenticate,promoteStudentController)
 
 export default router
