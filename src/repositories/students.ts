@@ -20,13 +20,15 @@ export interface UpdateStudentPayloadFromController {
     }
 }
 
-export type SearchParam = {
+export interface SearchParam {
   full_name?: string
   belt?: Belt
   grade?: number
-  currentPage?: number | string
   class_id?: string
-} | null
+  skip?: number
+  take?: number
+}
+
 
 
 export interface StudentsRepositoryInterface {
@@ -35,6 +37,7 @@ export interface StudentsRepositoryInterface {
   findByCpf(cpf: string): Promise<StudentWithPersonalInfo | null>
   details(id: string): Promise<StudentWithPersonalInfo | null>
   get(params: SearchParam): Promise<StudentWithPersonalInfo[]>
+  count(params: SearchParam): Promise<number>
   update(studentId: string, data: UpdateStudentPayloadFromController): Promise<StudentWithPersonalInfo>
   delete(studentId: string): Promise<void>
   enroll(studentId: string, classId: string): Promise<StudentWithPersonalInfo>
@@ -128,45 +131,49 @@ export class PrismaStudentsRepository implements StudentsRepositoryInterface {
     await prisma.students.delete({ where: { id: studentId } })
   }
 
-  async get(params: SearchParam & { currentPage?: string }): Promise<StudentWithPersonalInfo[]> {
-    if (!params) {
-      return prisma.students.findMany({
-        include: { personal_info: true, class: true }
-      })
-    }
-
-    const andFilters: Prisma.studentsWhereInput[] = []
-
-    if (params.belt) {
-      andFilters.push({ belt: params.belt })
-    }
-
-    if (params.grade) {
-      andFilters.push({ grade: params.grade })
-    }
-    if (params.class_id !== null && params.class_id !== undefined && params.class_id !== "") {
-      andFilters.push({ class_id: params.class_id })
-    }
-    if (params.full_name) {
-      andFilters.push({
-        personal_info: {
-          is: { full_name: { contains: params.full_name, mode: 'insensitive' } }
-        }
-      })
-    }
-
-    const where: Prisma.studentsWhereInput = andFilters.length > 0 ? { AND: andFilters } : {}
-
-    // Aqui vem a paginação
-    const page = params.currentPage ? parseInt(params.currentPage, 10) : 1;
-    const pageSize = 10;
-
+  async get(params?: SearchParam): Promise<StudentWithPersonalInfo[]> {
+  if (!params) {
     return prisma.students.findMany({
-      where,
-      include: { personal_info: true, class: true },
-      skip: (page - 1) * pageSize,
-      take: pageSize
-    })
+      include: { personal_info: true, class: true }
+    });
+  }
+
+  const andFilters: Prisma.studentsWhereInput[] = [];
+
+  if (params.belt) andFilters.push({ belt: params.belt });
+  if (params.grade) andFilters.push({ grade: params.grade });
+  if (params.class_id) andFilters.push({ class_id: params.class_id });
+  if (params.full_name) {
+    andFilters.push({
+      personal_info: { is: { full_name: { contains: params.full_name, mode: 'insensitive' } } }
+    });
+  }
+
+  const where: Prisma.studentsWhereInput = andFilters.length > 0 ? { AND: andFilters } : {};
+
+  return prisma.students.findMany({
+    where,
+    include: { personal_info: true, class: true },
+    skip: params.skip ?? 0,
+    take: params.take ?? 10
+  });
+}
+
+async count(params?: SearchParam): Promise<number> {
+  const andFilters: Prisma.studentsWhereInput[] = [];
+
+  if (params?.belt) andFilters.push({ belt: params.belt });
+  if (params?.grade) andFilters.push({ grade: params.grade });
+  if (params?.class_id) andFilters.push({ class_id: params.class_id });
+  if (params?.full_name) {
+    andFilters.push({
+      personal_info: { is: { full_name: { contains: params.full_name, mode: 'insensitive' } } }
+    });
+  }
+
+  const where: Prisma.studentsWhereInput = andFilters.length > 0 ? { AND: andFilters } : {};
+
+  return prisma.students.count({ where });
 }
 
 

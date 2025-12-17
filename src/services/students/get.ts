@@ -5,19 +5,13 @@ import { StudentsRepositoryInterface, SearchParam } from '../../repositories/stu
 type StudentWithPersonalInfo = students & { personal_info: any | null }
 
 export class GetStudentsService {
-    constructor(private repo: StudentsRepositoryInterface) {}
+  constructor(private repo: StudentsRepositoryInterface) {}
 
-    /**
-     * Busca alunos no Repositório usando um objeto de filtros.
-     */
-    async getStudents(params: SearchParam): Promise<StudentWithPersonalInfo[]> {
-        return this.repo.get(params) 
-    }
+  async getStudents(params: SearchParam): Promise<StudentWithPersonalInfo[]> {
+    return this.repo.get(params)
+  }
 
-    /**
-     * Retorna todos os alunos.
-     */
-    async findMany(): Promise<StudentWithPersonalInfo[]> {
-        return this.repo.get(null)
-    }
+  async countStudents(params: SearchParam): Promise<number> {
+    return this.repo.count(params)
+  }
 }
