@@ -10,62 +10,28 @@ import { EmailConflictError } from '../../services/students/errors'
 const updateStudentSchema = z.object({
   email: z.string().email('Email inválido').optional(),
   id: z.string().uuid({ message: 'ID inválido' }),
-  grade: z.number().int('A série deve ser um número inteiro').optional(),
+  grade: z.number().int('Série inválida').optional(),
   belt: z.nativeEnum(Belt).optional(),
   current_frequency: z.number().int().optional(),
   total_frequency: z.number().int().optional(),
   personal_info: z.object({
     full_name: z.string().min(2, 'Nome inválido').optional(),
     parent_name: z.string().min(2, 'Nome do responsável inválido').optional().nullable(),
-    parent_phone: z.string().min(8, { message: 'Telefone do responsável inválido' }).optional().nullable(),
-    student_phone: z.string().min(8, { message: 'Telefone do aluno inválido' }).optional(),
+    parent_phone: z.string().min(8, 'Telefone do responsável inválido').optional().nullable(),
+    student_phone: z.string().min(8, 'Telefone do aluno inválido').optional(),
     address: z.string().min(5, 'Endereço inválido').optional(),
-    date_of_birth: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida (YYYY-MM-DD)')
-      .optional(),
+    date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida (YYYY-MM-DD)').optional(),
   }).optional(),
 })
 
-
 export const updateStudentsController = async (req: AuthRequest, res: Response) => {
   try {
-    const parsedData = updateStudentSchema.parse({
-      id: req.params.id,
-      ...req.body,
-    })
+    const parsedData = updateStudentSchema.parse({ id: req.params.id, ...req.body })
+    const service = new UpdateStudentService(new PrismaStudentsRepository())
 
-    const service = new UpdateStudentService(
-      new PrismaStudentsRepository()
-    )
-
-    const updatePayload: any = {}
-
-    if (parsedData.grade !== undefined)
-      updatePayload.grade = parsedData.grade
-
-    if (parsedData.belt !== undefined)
-      updatePayload.belt = parsedData.belt
-
-    if (parsedData.email !== undefined)
-      updatePayload.email = parsedData.email
-
-    if (parsedData.current_frequency !== undefined)
-      updatePayload.current_frequency = parsedData.current_frequency
-
-    if (parsedData.total_frequency !== undefined)
-      updatePayload.total_frequency = parsedData.total_frequency
-
-    if (parsedData.personal_info) {
-      updatePayload.personal_info = {
-        ...parsedData.personal_info,
-        ...(parsedData.personal_info.date_of_birth && {
-          date_of_birth: normalizeDate(
-            parsedData.personal_info.date_of_birth
-          ),
-        }),
-      }
-    }
+    const updatePayload: any = { ...parsedData }
+    if (parsedData.personal_info?.date_of_birth)
+      updatePayload.personal_info.date_of_birth = normalizeDate(parsedData.personal_info.date_of_birth)
 
     const student = await service.update(parsedData.id, updatePayload)
 
@@ -83,8 +49,7 @@ export const updateStudentsController = async (req: AuthRequest, res: Response) 
               full_name: student.personal_info.full_name,
               cpf: student.personal_info.cpf,
               date_of_birth: student.personal_info.date_of_birth
-                ? new Date(student.personal_info.date_of_birth)
-                    .toLocaleDateString('pt-BR')
+                ? new Date(student.personal_info.date_of_birth).toLocaleDateString('pt-BR')
                 : null,
               student_phone: student.personal_info.student_phone,
               parent_phone: student.personal_info.parent_phone,
@@ -95,17 +60,8 @@ export const updateStudentsController = async (req: AuthRequest, res: Response) 
       },
     })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        message: 'Dados inválidos',
-        issues: error.issues,
-      })
-    }
-
-    if (error instanceof EmailConflictError) {
-      return res.status(409).json({ message: error.message })
-    }
-
+    if (error instanceof z.ZodError) return res.status(400).json({ message: error.issues[0]?.message || 'Campo inválido' })
+    if (error instanceof EmailConflictError) return res.status(409).json({ message: error.message })
     console.error(error)
     return res.status(500).json({ message: 'Erro interno do servidor' })
   }

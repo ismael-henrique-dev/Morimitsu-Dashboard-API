@@ -10,7 +10,7 @@ export class EmailConflictError extends Error {
 
 export class CPFConflictError extends Error {
   constructor(cpf: string) {
-    super(`O CPF já está cadastrado.`)
+    super(`O CPF é invalido.`)
     this.name = 'CPFConflictError'
   }
 }
