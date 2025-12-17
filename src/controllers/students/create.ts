@@ -49,10 +49,7 @@ const calculateAge = (dateOfBirth: Date) => {
 // Schema de validação
 export const createStudentSchema = z
   .object({
-    cpf: z
-      .string()
-      .length(11, { message: 'CPF inválido' })
-      .refine(isValidCpf, { message: 'CPF inválido' }),
+    cpf: z.string().length(11, { message: 'CPF inválido' }).refine(isValidCpf, { message: 'CPF inválido' }),
     full_name: z.string().min(2, { message: 'Nome inválido' }),
     email: z.string().email({ message: 'Email inválido' }),
     parent_name: z.string().min(2, { message: 'Nome do responsável inválido' }).optional().nullable(),
@@ -63,10 +60,7 @@ export const createStudentSchema = z
     address: z.string().min(5, { message: 'Endereço inválido' }),
     date_of_birth: z.string(),
     grade: z.number().int({ message: 'Grau inválido' }),
-    belt: z
-      .nativeEnum(Belt)
-      .optional()
-      .refine(val => val === undefined || Object.values(Belt).includes(val), { message: 'Faixa inválida' }),
+    belt: z.nativeEnum(Belt).optional().refine(val => val === undefined || Object.values(Belt).includes(val), { message: 'Faixa inválida' }),
     class_id: z.string().uuid({ message: 'ID de turma inválido' }).optional(),
     ifce_enrollment: enrollmentSchema.optional(),
   })
