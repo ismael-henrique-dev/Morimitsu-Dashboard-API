@@ -2,14 +2,18 @@ import { Router } from 'express'
 import { authenticate } from '../middlewares/auth'
 import { getUsersController } from '../controllers/users/get'
 import { updateUserController } from '../controllers/users/update'
-import { sendRecoveryController, resetPasswordController } from '../controllers/users/passwordController'
-
+import { PasswordController } from '../controllers/users/passwordController'
 
 const router = Router()
 
+// Cria a instância do controller
+const passwordController = new PasswordController()
+
 router.get('/', authenticate, getUsersController)
 router.patch('/update/:id', authenticate, updateUserController)
-router.post('/forgot-password', sendRecoveryController)
-router.post('/reset-password', resetPasswordController)
+
+// Agora usamos os métodos via instância
+router.post('/forgot-password', passwordController.sendRecoveryEmail)
+router.post('/reset-password', passwordController.resetPassword)
 
 export default router

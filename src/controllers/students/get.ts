@@ -10,9 +10,8 @@ export const getStudentsController = async (req: AuthRequest, res: Response) => 
     const search = req.query.search as string | undefined
     const beltQuery = req.query.belt as string | undefined
     const gradeQuery = req.query.grade as string | undefined
-    const pageQuery = req.query.page as string | undefined
-    const perPageQuery = req.query.perPage as string | undefined
     const class_idQuery = req.query.class_id as string | undefined
+    const currentPageQuery = req.query.currentPage as string | undefined
 
     const filters: SearchParam = {}
     if (search) filters.full_name = search
@@ -26,9 +25,9 @@ export const getStudentsController = async (req: AuthRequest, res: Response) => 
     if (class_idQuery) filters.class_id = class_idQuery
 
     // Paginação
-    const page = pageQuery ? parseInt(pageQuery, 10) : 1
-    const perPage = perPageQuery ? parseInt(perPageQuery, 10) : 10
-    const skip = (page - 1) * perPage
+    const currentPage = currentPageQuery ? parseInt(currentPageQuery, 10) : 1
+    const perPage = 10  // fixo
+    const skip = (currentPage - 1) * perPage
 
     const service = new GetStudentsService(new PrismaStudentsRepository())
 
@@ -66,8 +65,9 @@ export const getStudentsController = async (req: AuthRequest, res: Response) => 
       message: 'Alunos encontrados',
       result: formattedStudents,
       pagination: {
+        totalItems: totalStudents,
         totalPages,
-        currentPage: page,
+        currentPage,
         perPage,
       },
     })
