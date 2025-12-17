@@ -1,30 +1,18 @@
-import { Response } from 'express'
-import { AuthRequest } from '../../middlewares/auth'
-import { DetailsStudentsService } from '../../services/students/details'
-import { PrismaStudentsRepository } from '../../repositories/students'
-import { z } from 'zod'
+import { Request, Response } from 'express'
+import { GetStudentDetailsService } from '../../services/students/details'
 
-const detailsStudentsSchema = z.object({
-  search: z.string().optional(),
-})
+export const getStudentDetailsController = async (req: Request, res: Response) => {
+  try {
+    const { studentId } = req.params
+    const service = new GetStudentDetailsService()
+    const student = await service.execute(studentId)
 
-export const detailsStudentsController = async (req: AuthRequest, res: Response) => {
-    try {
-        const { id } = req.params 
-        const service = new DetailsStudentsService(new PrismaStudentsRepository())
-        const student = await service.handle(id)
-
-    if (!student) {
-      return res.status(404).json({ message: 'Aluno não encontrado' })
-    }   
     return res.status(200).json({
       message: 'Aluno encontrado',
-      result: student,
+      result: student
     })
-  }catch (err) {   
+  } catch (err: any) {
     console.error(err)
-    return res.status(500).json({
-      message: 'Erro interno do servidor',
-    })
+    return res.status(404).json({ message: err.message || 'Erro ao buscar aluno' })
   }
 }
